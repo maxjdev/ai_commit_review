@@ -19,7 +19,8 @@ import {
   getConflictDiff,
   writeConflictToTempFile,
   openFileInEditor,
-  updateFileFromTemp
+  updateFileFromTemp,
+  isNoTrackingError
 } from "../src/gitBranch.js";
 
 test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)", async (t) => {
@@ -37,6 +38,10 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
     const envDeps = getDeps();
     assert.equal(envDeps.editor, "nano");
     if (oldEditor !== undefined) process.env.EDITOR = oldEditor; else delete process.env.EDITOR;
+
+    // Act 3: com editor customizado injetado
+    const customEditorDeps = getDeps({ editor: "custom_editor" });
+    assert.equal(customEditorDeps.editor, "custom_editor");
 
     // Act 3: com injeção explícita
     const customDeps = getDeps({
@@ -83,18 +88,37 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
     pullChanges({ executeGitCommandFn: (cmd) => { pullCmd = cmd; return ""; } });
     assert.equal(pullCmd, "git pull --no-rebase");
 
+    // Pull com erro comum
     assert.throws(
       () => pullChanges({ executeGitCommandFn: () => { throw new Error("Pull Fail"); } }),
       /Pull Fail/
+    );
+
+    // Act 2: Erro de tracking ignorado graciosamente (com Error e com string pura)
+    assert.doesNotThrow(
+      () => pullChanges({ executeGitCommandFn: () => { throw new Error("There is no tracking information for the current branch."); } })
+    );
+    assert.doesNotThrow(
+      () => pullChanges({ executeGitCommandFn: () => { throw "fatal: The current branch has no upstream branch."; } })
     );
 
     let pushCmd = "";
     pushChanges({ executeGitCommandFn: (cmd) => { pushCmd = cmd; return ""; } });
     assert.equal(pushCmd, "git push");
 
-    assert.doesNotThrow(
-      () => pushChanges({ executeGitCommandFn: () => { throw new Error("Push Fail"); } })
+    assert.throws(
+      () => pushChanges({ executeGitCommandFn: () => { throw new Error("Push Fail"); } }),
+      /Push Fail/
     );
+
+    // isNoTrackingError utilitário
+    assert.equal(isNoTrackingError(), false);
+    assert.equal(isNoTrackingError(undefined), false);
+    assert.equal(isNoTrackingError(""), false);
+    assert.equal(isNoTrackingError("There is no tracking information for the current branch."), true);
+    assert.equal(isNoTrackingError("fatal: The current branch has no upstream branch."), true);
+    assert.equal(isNoTrackingError("fatal: couldn't find remote ref main"), true);
+    assert.equal(isNoTrackingError("Outro erro qualquer"), false);
   });
 
   await t.test("switchBranch deve validar parâmetros e lidar com stash e erros", async () => {
@@ -115,7 +139,7 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
     };
     switchBranch("feature/teste", depsStash);
     assert.ok(executedCmds.includes("git stash"));
-    assert.ok(executedCmds.includes("git checkout feature/teste"));
+    assert.ok(executedCmds.includes('git checkout "feature/teste"'));
     assert.ok(executedCmds.includes("git stash pop"));
 
     // Act 3: Troca sem uncommitted changes (hadStash = false) e status retornando null
@@ -196,8 +220,8 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
     };
 
     await mergeBranch("dev", "main", deps);
-    assert.ok(executedCmds.includes("git checkout main"));
-    assert.ok(executedCmds.includes("git merge --no-ff dev"));
+    assert.ok(executedCmds.includes('git checkout "main"'));
+    assert.ok(executedCmds.includes('git merge --no-ff "dev"'));
   });
 
   await t.test("checkConflicts e getConflictDiff devem identificar conflitos de merge", () => {

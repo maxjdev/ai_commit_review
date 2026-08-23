@@ -29,6 +29,8 @@ Enum das chaves de configuração suportadas pelo sistema:
 - `OPENAI_API_KEY`: `"OPENAI_API_KEY"`
 - `OPENAI_API_MODEL`: `"OPENAI_API_MODEL"`
 - `OPENAI_RESPONSE_LANGUAGE`: `"OPENAI_RESPONSE_LANGUAGE"`
+- `SCRAPING_API_BASEURL`: `"SCRAPING_API_BASEURL"`
+- `AUTO_ERROR_DIAGNOSTICS`: `"AUTO_ERROR_DIAGNOSTICS"`
 
 ### `SupportedLanguages`
 Mapeamento de idiomas suportados para geração de respostas da IA:
@@ -39,3 +41,4 @@ Mapeamento de idiomas suportados para geração de respostas da IA:
 Enum dos tipos de prompts operacionais:
 - `ANALYZE`: `"analyze"` (análise de commits)
 - `CREATE`: `"create"` (criação de commits)
+- `DIAGNOSE_ERROR`: `"diagnose_error"` (diagnóstico de falhas com IA e busca web)

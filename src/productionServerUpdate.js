@@ -25,7 +25,7 @@ export function ensureBranch(targetBranch, deps = {}) {
   const currentBranch = d.executeGitCommandFn("git rev-parse --abbrev-ref HEAD");
   if (currentBranch !== targetBranch) {
     console.log(chalk.blue(`ℹ️ Switching to branch ${targetBranch}...`));
-    d.executeGitCommandFn("git checkout " + targetBranch);
+    d.executeGitCommandFn(`git checkout "${targetBranch}"`);
   } else {
     console.log(chalk.blue(`ℹ️ Already on branch ${targetBranch}.`));
   }

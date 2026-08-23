@@ -13,6 +13,7 @@ import {
   clearStage,
   undoLastCommitSoft,
   commitChangesWithEditor,
+  commitDirectlyWithMessageFile,
   getCommits,
   formatGitDate,
   truncateString,
@@ -97,6 +98,20 @@ test("gitCore.js - Cobertura 100% de Operações do Git (Padrão AAA)", async (t
     assert.throws(
       () => commitChangesWithEditor("temp.txt", { execSyncFn: () => { throw new Error("Commit Fail"); } }),
       /Commit Fail/
+    );
+  });
+
+  await t.test("commitDirectlyWithMessageFile deve executar git commit sem editor e relançar exceção", () => {
+    let executedCmd = "";
+
+    // Act 1: Sucesso
+    commitDirectlyWithMessageFile("temp.txt", { execSyncFn: (cmd) => { executedCmd = cmd; return ""; } });
+    assert.match(executedCmd, /git commit --file="temp\.txt"/);
+
+    // Act 2: Erro
+    assert.throws(
+      () => commitDirectlyWithMessageFile("temp.txt", { execSyncFn: () => { throw new Error("Direct Commit Fail"); } }),
+      /Direct Commit Fail/
     );
   });
 

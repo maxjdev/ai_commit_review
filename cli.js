@@ -3,169 +3,192 @@ import { program } from "commander";
 import inquirer from "inquirer";
 import { showHelp } from "./src/helpers.js";
 import { updateConfigFromString, ensureValidApiKey, resetConfig } from "./src/configManager.js";
-import { analyzeCommits } from "./src/analyzeCommit.js"; // Analyze commits
-import { createCommit } from "./src/createCommit.js"; // Create commits
-import { commitStaged } from "./src/commitStaged.js"; // Commit staged changes
-import { criptografarcli } from "./src/crypto.js"; // Encrypt/decrypt functionality
-import { updateServerToTest } from "./src/testServerUpdate.js"; // Script to Update Server to Test
-import { updateServerToProduction } from "./src/productionServerUpdate.js"; // Script to Update Server to production
+import { analyzeCommits } from "./src/analyzeCommit.js";
+import { createCommit } from "./src/createCommit.js";
+import { commitStaged } from "./src/commitStaged.js";
+import { criptografarcli } from "./src/crypto.js";
+import { updateServerToTest } from "./src/testServerUpdate.js";
+import { updateServerToProduction } from "./src/productionServerUpdate.js";
+import { diagnoseAndHandleError } from "./src/errorDiagnosticService.js";
 import { execSync } from "child_process";
 
-try {
-  console.log(chalk.blue("Checking if 'ai-commit-review' lib is up to date..."));
-  let outdatedData;
-  try {
-    outdatedData = execSync("npm outdated -g ai-commit-review --json", {
-      encoding: "utf8",
-      stdio: ['pipe', 'pipe', 'pipe']
-    });
-  } catch (error) {
-    outdatedData = error.stdout || "";
-  }
+export const commandActionMap = Object.freeze({
+  analyze: analyzeCommits,
+  create: createCommit,
+  commit: commitStaged,
+  crypto: criptografarcli,
+  updateTestServer: updateServerToTest,
+  updateProductionServer: updateServerToProduction,
+  resetConfig: resetConfig,
+});
 
-  if (outdatedData.trim()) {
+export function getDeps(deps = {}) {
+  return {
+    diagnoseAndHandleErrorFn: deps.diagnoseAndHandleErrorFn || diagnoseAndHandleError,
+    execSyncFn: deps.execSyncFn || execSync,
+    resetConfigFn: deps.resetConfigFn || resetConfig,
+    ensureValidApiKeyFn: deps.ensureValidApiKeyFn || ensureValidApiKey,
+    promptFn: deps.promptFn || inquirer.prompt,
+    program: deps.program || program,
+    updateConfigFromStringFn: deps.updateConfigFromStringFn || updateConfigFromString,
+    commandActionMap: deps.commandActionMap || commandActionMap,
+    isTesting: Boolean(deps.isTesting),
+    criptografarcli: deps.criptografarcli || criptografarcli,
+    analyzeCommits: deps.analyzeCommits || analyzeCommits,
+    createCommit: deps.createCommit || createCommit,
+    commitStaged: deps.commitStaged || commitStaged,
+    updateServerToTest: deps.updateServerToTest || updateServerToTest,
+    updateServerToProduction: deps.updateServerToProduction || updateServerToProduction,
+    resetConfig: deps.resetConfig || resetConfig,
+  };
+}
+
+export function getCommandAction(cmdName, deps = {}) {
+  const d = getDeps(deps);
+  const handlerMap = {
+    crypto: d.criptografarcli,
+    analyze: d.analyzeCommits,
+    create: d.createCommit,
+    commit: d.commitStaged,
+    updateTestServer: d.updateServerToTest,
+    updateProductionServer: d.updateServerToProduction,
+    resetConfig: d.resetConfig,
+  };
+  return handlerMap[cmdName] || d.commandActionMap[cmdName];
+}
+
+export async function safeExecuteCommand(cmdName, asyncFn, deps = {}) {
+  const d = getDeps(deps);
+  let shouldRetry = true;
+  while (shouldRetry) {
     try {
+      await asyncFn();
+      shouldRetry = false;
+    } catch (error) {
+      try {
+        const result = await d.diagnoseAndHandleErrorFn(error, { command: `acr ${cmdName}` });
+        shouldRetry = result?.action === "retry";
+        if (shouldRetry) {
+          console.log(chalk.blue(`\n🔄 Retrying command 'acr ${cmdName}'...\n`));
+        }
+      } catch (diagError) {
+        console.error(chalk.red("❌ Error during diagnosis:"), diagError.message);
+        shouldRetry = false;
+      }
+    }
+  }
+}
+
+export async function checkOutdatedLib(deps = {}) {
+  const d = getDeps(deps);
+  try {
+    console.log(chalk.blue("Checking if 'ai-commit-review' lib is up to date..."));
+    let outdatedData = "";
+    try {
+      outdatedData = d.execSyncFn("npm outdated -g ai-commit-review --json", {
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+      }) || "";
+    } catch (error) {
+      outdatedData = error.stdout || "";
+    }
+
+    if (outdatedData.toString().trim()) {
       const outdated = JSON.parse(outdatedData);
       if (Object.keys(outdated).length > 0) {
         console.log(chalk.yellow("'ai-commit-review' lib is outdated. Updating..."));
-
-        await resetConfig();
-
-        execSync("npm update -g ai-commit-review", { stdio: "inherit" });
+        await d.resetConfigFn();
+        d.execSyncFn("npm update -g ai-commit-review", { stdio: "inherit" });
         console.log(chalk.green("'ai-commit-review' lib updated successfully."));
-        process.exit(0);
-      } else {
-        console.log(chalk.green("'ai-commit-review' lib is already up to date."));
+        if (!d.isTesting) process.exit(0);
+        return;
       }
-    } catch (parseError) {
-      console.log(chalk.green("'ai-commit-review' lib is already up to date."));
     }
-  } else {
     console.log(chalk.green("'ai-commit-review' lib is already up to date."));
+  } catch (error) {
+    console.error(chalk.red("Error checking 'ai-commit-review' lib updates:"), error.message);
   }
-} catch (error) {
-  console.error(chalk.red("Error checking 'ai-commit-review' lib updates:"), error.message);
 }
 
-process.noDeprecation = true;
+export function registerCliCommands(prog, deps = {}) {
+  const d = getDeps(deps);
+  prog.helpInformation = showHelp;
+  prog.name("acr").description("A tool to analyze commits and create new ones with AI assistance");
 
-// Ensure a valid API key unless updating config or using the crypto command
-if (!process.argv.includes("set_config") || !process.argv.includes("crypto")) {
-  await ensureValidApiKey();
-}
-
-// Custom help information
-program.helpInformation = showHelp;
-
-program
-  .name("acr")
-  .description("A tool to analyze commits and create new ones with AI assistance");
-
-// Command for encrypting and decrypting text
-program
-  .command("crypto")
-  .description("Encrypt and decrypt text")
-  .action(async () => {
-    await criptografarcli();
-  });
-
-// Command to analyze commits
-program
-  .command("analyze")
-  .description("Analyze individual or grouped commits from the local Git repository")
-  .action(async () => {
-    await analyzeCommits();
-  });
-
-// Command to create a new commit
-program
-  .command("create")
-  .description("Create a new commit with AI assistance")
-  .action(async () => {
-    await createCommit();
-  });
-
-// Command to commit staged changes
-program
-  .command("commit")
-  .description("Commit staged changes with AI assistance")
-  .action(async () => {
-    await commitStaged();
-  });
-
-// Command to update server to test
-program
-  .command("updateTestServer")
-  .description("Update server to test")
-  .action(async () => {
-    await updateServerToTest();
-  });
-
-// Command to update server to production
-program
-  .command("updateProductionServer")
-  .description("Update server to production")
-  .action(async () => {
-    await updateServerToProduction();
-  });
-
-  // Command to reset configuration
-program
-  .command("resetConfig")
-  .description("Reset configuration to defaults")
-  .action(async () => {
-    await resetConfig();
-  });
-
-// Command to update configurations
-program
-  .command("set_config <keyValue>")
-  .description("Update configurations with KEY=VALUE (e.g., OPENAI_API_KEY=<value>)")
-  .action((keyValue) => {
+  prog.command("crypto").description("Encrypt and decrypt text").action(() => safeExecuteCommand("crypto", getCommandAction("crypto", deps), deps));
+  prog.command("analyze").description("Analyze commits").action(() => safeExecuteCommand("analyze", getCommandAction("analyze", deps), deps));
+  prog.command("create").description("Create a new commit").action(() => safeExecuteCommand("create", getCommandAction("create", deps), deps));
+  prog.command("commit").description("Commit staged changes").action(() => safeExecuteCommand("commit", getCommandAction("commit", deps), deps));
+  prog.command("updateTestServer").description("Update server to test").action(() => safeExecuteCommand("updateTestServer", getCommandAction("updateTestServer", deps), deps));
+  prog.command("updateProductionServer").description("Update server to production").action(() => safeExecuteCommand("updateProductionServer", getCommandAction("updateProductionServer", deps), deps));
+  prog.command("resetConfig").description("Reset configuration to defaults").action(() => safeExecuteCommand("resetConfig", getCommandAction("resetConfig", deps), deps));
+  prog.command("set_config <keyValue>").description("Update configurations with KEY=VALUE").action((keyValue) => {
     try {
-      updateConfigFromString(keyValue);
+      d.updateConfigFromStringFn(keyValue);
     } catch (error) {
       console.error(chalk.red("❌ Error updating configuration:", error.message));
     }
   });
-
-// Prompt the user if no command is provided
-if (!process.argv.slice(2).length) {
-  console.log(chalk.yellow("⚠️ No command provided."));
-  (async () => {
-    const { command } = await inquirer.prompt([
-      {
-        type: "list",
-        name: "command",
-        message: "What do you want to do?",
-        choices: [
-          { name: "Analyze commits", value: "analyze" },
-          { name: "Create a new commit", value: "create" },
-          { name: "Commit staged changes", value: "commit" },
-          { name: "Encrypt/Decrypt text", value: "crypto" },
-          { name: "Update server to test", value: "updateTestServer" },
-          { name: "Update server to production", value: "updateProductionServer" },
-          { name: "Reset configuration", value: "resetConfig" }
-        ],
-      },
-    ]);
-
-    if (command === "analyze") {
-      await analyzeCommits();
-    } else if (command === "create") {
-      await createCommit();
-    } else if (command === "commit") {
-      await commitStaged();
-    } else if (command === "crypto") {
-      await criptografarcli();
-    } else if (command === "updateTestServer") {
-      await updateServerToTest();
-    } else if (command === "updateProductionServer") {
-      await updateServerToProduction();
-    } else if (command === "resetConfig") {
-      await resetConfig();
-    }
-  })();
-} else {
-  program.parse(process.argv);
 }
+
+export async function runInteractiveMenu(deps = {}) {
+  const d = getDeps(deps);
+  console.log(chalk.yellow("⚠️ No command provided."));
+  const { command } = await d.promptFn([
+    {
+      type: "list",
+      name: "command",
+      message: "What do you want to do?",
+      choices: [
+        { name: "Analyze commits", value: "analyze" },
+        { name: "Create a new commit", value: "create" },
+        { name: "Commit staged changes", value: "commit" },
+        { name: "Encrypt/Decrypt text", value: "crypto" },
+        { name: "Update server to test", value: "updateTestServer" },
+        { name: "Update server to production", value: "updateProductionServer" },
+        { name: "Reset configuration", value: "resetConfig" },
+      ],
+    },
+  ]);
+
+  const action = d.commandActionMap[command];
+  if (action) {
+    await safeExecuteCommand(command, action, deps);
+  }
+}
+
+export async function runCliFlow(argv = process.argv, deps = {}) {
+  const d = getDeps(deps);
+  process.noDeprecation = true;
+  await checkOutdatedLib(deps);
+
+  if (!argv.includes("set_config") && !argv.includes("crypto")) {
+    await d.ensureValidApiKeyFn();
+  }
+
+  const prog = d.program;
+  registerCliCommands(prog, deps);
+
+  if (!argv.slice(2).length) {
+    await runInteractiveMenu(deps);
+  } else {
+    prog.parse(argv);
+  }
+}
+
+export function isMainExecution(argv1 = process.argv[1]) {
+  if (!argv1) return false;
+  return (
+    argv1.endsWith("cli.js") ||
+    argv1.endsWith("bundle.cjs") ||
+    argv1.endsWith("acr")
+  );
+}
+
+export async function main(argv = process.argv, deps = {}) {
+  if (isMainExecution(argv[1])) {
+    await runCliFlow(argv, deps);
+  }
+}
+
+main();

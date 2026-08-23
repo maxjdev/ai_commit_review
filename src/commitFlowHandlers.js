@@ -8,31 +8,29 @@ import {
   getCurrentBranch,
   listBranches,
   switchBranch,
-  checkConflicts,
-  getConflictDiff,
-  writeConflictToTempFile,
-  openFileInEditor,
-  updateFileFromTemp,
   commitChangesWithEditor,
+  commitDirectlyWithMessageFile,
   undoLastCommitSoft,
-  executeGitCommand
 } from "./gitUtils.js";
 import { analyzeUpdatedCode } from "./openaiUtils.js";
 import { buildContextForFiles } from "./contextManager.js";
 import { PromptType } from "./models.js";
+import { diagnoseAndHandleError } from "./errorDiagnosticService.js";
+
+export {
+  verifyConflicts,
+  resolveConflictsManually,
+  resolveConflictsAutomatically,
+} from "./gitConflictHandlers.js";
 
 export function getDeps(deps = {}) {
   return {
     getCurrentBranchFn: deps.getCurrentBranchFn || getCurrentBranch,
     listBranchesFn: deps.listBranchesFn || listBranches,
     switchBranchFn: deps.switchBranchFn || switchBranch,
-    checkConflictsFn: deps.checkConflictsFn || checkConflicts,
-    getConflictDiffFn: deps.getConflictDiffFn || getConflictDiff,
-    writeConflictToTempFileFn: deps.writeConflictToTempFileFn || writeConflictToTempFile,
-    openFileInEditorFn: deps.openFileInEditorFn || openFileInEditor,
-    updateFileFromTempFn: deps.updateFileFromTempFn || updateFileFromTemp,
-    executeGitCommandFn: deps.executeGitCommandFn || executeGitCommand,
     commitChangesWithEditorFn: deps.commitChangesWithEditorFn || commitChangesWithEditor,
+    commitDirectlyWithMessageFileFn: deps.commitDirectlyWithMessageFileFn || commitDirectlyWithMessageFile,
+    diagnoseAndHandleErrorFn: deps.diagnoseAndHandleErrorFn || diagnoseAndHandleError,
     undoLastCommitSoftFn: deps.undoLastCommitSoftFn || undoLastCommitSoft,
     buildContextForFilesFn: deps.buildContextForFilesFn || buildContextForFiles,
     analyzeUpdatedCodeFn: deps.analyzeUpdatedCodeFn || analyzeUpdatedCode,
@@ -68,92 +66,6 @@ export async function confirmOrSwitchBranch(deps = {}) {
   }
 }
 
-async function handleConflictResolution(resolutionOption, conflicts, deps) {
-  if (resolutionOption === "manual") {
-    await resolveConflictsManually(conflicts, deps);
-  } else if (resolutionOption === "automatic") {
-    await resolveConflictsAutomatically(conflicts, deps);
-  } else {
-    console.log(chalk.red("❌ Resolve the conflicts before proceeding."));
-    throw new Error("Conflicts unresolved.");
-  }
-}
-
-export async function verifyConflicts(deps = {}) {
-  const d = getDeps(deps);
-  const conflicts = d.checkConflictsFn();
-  if (conflicts.length === 0) {
-    console.log(chalk.green("✔ No conflicts detected."));
-    return;
-  }
-
-  console.log(chalk.red("❌ Conflicts detected in the following files:"));
-  conflicts.forEach((file, index) => console.log(`${index + 1}. ${file}`));
-
-  const { resolutionOption } = await d.promptFn([
-    {
-      type: "list",
-      name: "resolutionOption",
-      message: "How would you like to resolve the conflicts?",
-      choices: [
-        { name: "Resolve manually in an editor", value: "manual" },
-        { name: "Resolve automatically using mergetool", value: "automatic" },
-        { name: "Cancel and resolve later", value: "cancel" },
-      ],
-    },
-  ]);
-
-  await handleConflictResolution(resolutionOption, conflicts, deps);
-}
-
-export async function resolveConflictsManually(conflicts, deps = {}) {
-  const d = getDeps(deps);
-  for (const file of conflicts) {
-    console.log(chalk.yellow(`Resolving conflict for: ${file}`));
-    const diff = d.getConflictDiffFn(file);
-    if (!diff) continue;
-
-    const tempFilePath = d.writeConflictToTempFileFn(file, diff);
-    d.openFileInEditorFn(tempFilePath);
-
-    const { confirmResolution } = await d.promptFn([
-      {
-        type: "confirm",
-        name: "confirmResolution",
-        message: `Have you resolved the conflict for: ${file}?`,
-        default: true,
-      },
-    ]);
-
-    if (confirmResolution) {
-      d.updateFileFromTempFn(file, tempFilePath);
-      if (fs.existsSync(tempFilePath)) {
-        fs.unlinkSync(tempFilePath);
-      }
-    }
-  }
-}
-
-export async function resolveConflictsAutomatically(conflicts, deps = {}) {
-  const d = getDeps(deps);
-  console.log(chalk.blue("⚙️ Launching mergetool to resolve conflicts..."));
-  conflicts.forEach((file) => d.executeGitCommandFn(`git mergetool -- ${file}`));
-  console.log(chalk.green("✔ Conflicts resolved using mergetool."));
-
-  const { stageChanges } = await d.promptFn([
-    {
-      type: "confirm",
-      name: "stageChanges",
-      message: "Would you like to stage the resolved files?",
-      default: true,
-    },
-  ]);
-
-  if (stageChanges) {
-    d.executeGitCommandFn("git add .");
-  }
-}
-
 async function generateInitialMessage(messageOption, stagedFiles, d) {
   if (messageOption === "cancel") {
     throw new Error("Commit process canceled by user.");
@@ -174,15 +86,63 @@ async function generateInitialMessage(messageOption, stagedFiles, d) {
   return manualMessage;
 }
 
-function editMessageInTempFile(commitMessage, d) {
-  const tempFile = path.join(os.tmpdir(), `commit_msg_${process.pid}_${Date.now()}_${Math.random().toString(36).slice(2)}.txt`);
-  fs.writeFileSync(tempFile, commitMessage, { encoding: "utf-8" });
-  d.commitChangesWithEditorFn(tempFile);
-  const updatedMessage = fs.readFileSync(tempFile, { encoding: "utf-8" }).trim();
-  if (fs.existsSync(tempFile)) {
-    fs.unlinkSync(tempFile);
+async function handleEditorFailure(err, tempFile, commitMessage, d) {
+  console.log(chalk.yellow("\n⚠️ Editor could not be launched."));
+  const { fallbackChoice } = await d.promptFn([
+    {
+      type: "list",
+      name: "fallbackChoice",
+      message: "The editor failed to open. How would you like to proceed?",
+      choices: [
+        { name: "⚡ Commit directly with the AI message (no editor)", value: "direct" },
+        { name: "🧠 Diagnose error with AI & Fix Git editor", value: "diagnose" },
+        { name: "📝 Enter commit message in terminal", value: "manual" },
+        { name: "❌ Cancel commit", value: "cancel" },
+      ],
+    },
+  ]);
+
+  if (fallbackChoice === "direct") {
+    d.commitDirectlyWithMessageFileFn(tempFile);
+    return commitMessage;
   }
-  return updatedMessage;
+  if (fallbackChoice === "diagnose") {
+    await d.diagnoseAndHandleErrorFn(err, { command: "git commit --edit" });
+    d.commitChangesWithEditorFn(tempFile);
+    return fs.readFileSync(tempFile, { encoding: "utf-8" }).trim();
+  }
+  if (fallbackChoice === "manual") {
+    const { manualMsg } = await d.promptFn([
+      {
+        type: "input",
+        name: "manualMsg",
+        message: "Enter your commit message:",
+        default: commitMessage,
+      },
+    ]);
+    fs.writeFileSync(tempFile, manualMsg, { encoding: "utf-8" });
+    d.commitDirectlyWithMessageFileFn(tempFile);
+    return manualMsg;
+  }
+  throw new Error("Commit process canceled by user.");
+}
+
+async function editMessageInTempFile(commitMessage, d) {
+  const rand = Math.random().toString(36).slice(2);
+  const tempFile = path.join(os.tmpdir(), `commit_msg_${process.pid}_${Date.now()}_${rand}.txt`);
+  try {
+    fs.writeFileSync(tempFile, commitMessage, { encoding: "utf-8" });
+    try {
+      d.commitChangesWithEditorFn(tempFile);
+    } catch (editorErr) {
+      return await handleEditorFailure(editorErr, tempFile, commitMessage, d);
+    }
+    return fs.readFileSync(tempFile, { encoding: "utf-8" }).trim();
+  } finally {
+    if (fs.existsSync(tempFile)) {
+      fs.unlinkSync(tempFile);
+    }
+  }
 }
 
 export async function obtainCommitMessage(stagedFiles, deps = {}) {
@@ -205,7 +165,7 @@ export async function obtainCommitMessage(stagedFiles, deps = {}) {
     ]);
 
     commitMessage = await generateInitialMessage(messageOption, stagedFiles, d);
-    const updatedMessage = editMessageInTempFile(commitMessage, d);
+    const updatedMessage = await editMessageInTempFile(commitMessage, d);
 
     if (updatedMessage) {
       commitMessage = updatedMessage;

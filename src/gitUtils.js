@@ -7,6 +7,7 @@ export {
   clearStage,
   undoLastCommitSoft,
   commitChangesWithEditor,
+  commitDirectlyWithMessageFile,
   getCommits,
   getModifiedFiles,
   getFileDiff,

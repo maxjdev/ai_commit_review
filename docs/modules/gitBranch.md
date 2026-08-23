@@ -15,8 +15,9 @@ O módulo `src/gitBranch.js` gerencia operações de trocas de branch, atualiza�
 - `getDeps(deps)`: Retorna fábrica de dependências com fallbacks seguros (`executeGitCommandFn`, `execSyncFn`, `editor`).
 - `getCurrentBranch(deps)`: Retorna o nome da branch ativa.
 - `listBranches(deps)`: Lista branches locais.
-- `pullChanges(deps)`: Executa `git pull --no-rebase`.
-- `pushChanges(deps)`: Executa `git push`.
+- `isNoTrackingError(errorMessage)`: Detecta se o erro retornado pelo Git é referente a branch local sem rastreamento remoto (`no tracking information`, `no upstream branch`).
+- `pullChanges(deps)`: Executa `git pull --no-rebase`. Em branches locais sem rastreamento remoto, avisa amigavelmente e segue o fluxo sem travar o processo. Em outros erros, propaga a exceção para o motor de diagnóstico.
+- `pushChanges(deps)`: Executa `git push`. Propaga exceções para acionar o diagnóstico inteligente e a autocorreção caso a branch não possua upstream ou ocorram divergências.
 - `switchBranch(branch, deps)`: Alterna de branch com stash defensivo.
 - `restoreStashOrRollback(originalBranch, deps)`: Restaura stash com rollback em caso de conflito.
 - `mergeBranch(fromBranch, toBranch, deps)`: Executa merge entre branches.

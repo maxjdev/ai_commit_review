@@ -44,6 +44,15 @@ export function listBranches(deps = {}) {
   }
 }
 
+export function isNoTrackingError(errorMessage = "") {
+  const msg = errorMessage.toLowerCase();
+  return (
+    msg.includes("no tracking information") ||
+    msg.includes("has no upstream branch") ||
+    msg.includes("couldn't find remote ref")
+  );
+}
+
 /**
  * Pulls latest changes from remote.
  */
@@ -53,6 +62,10 @@ export function pullChanges(deps = {}) {
     d.executeGitCommandFn("git pull --no-rebase", deps);
     console.log(chalk.green("✔ Pulled latest changes from remote."));
   } catch (error) {
+    if (isNoTrackingError(error.message || String(error))) {
+      console.log(chalk.yellow("ℹ️ Local branch has no remote tracking yet (skipping pull)."));
+      return;
+    }
     console.error(chalk.red("❌ Error pulling changes:"), error.message);
     throw error;
   }
@@ -68,6 +81,7 @@ export function pushChanges(deps = {}) {
     console.log(chalk.green("✔ Changes successfully pushed to remote repository!"));
   } catch (error) {
     console.error(chalk.red("❌ Error pushing changes:"), error.message);
+    throw error;
   }
 }
 
@@ -100,7 +114,7 @@ export function switchBranch(branch, deps = {}) {
   try {
     const hadStash = saveStashAndPull(originalBranch, deps, d);
 
-    d.executeGitCommandFn("git checkout " + branch, deps);
+    d.executeGitCommandFn(`git checkout "${branch}"`, deps);
     console.log(chalk.green(`✔ Switched to branch '${branch}' successfully.`));
 
     console.log(chalk.blue("ℹ️ Updating target branch with git pull..."));
@@ -122,7 +136,7 @@ export function restoreStashOrRollback(originalBranch, deps = {}) {
     d.executeGitCommandFn("git stash pop", deps);
   } catch (stashError) {
     console.error(chalk.red("❌ Conflicts detected reapplying stash. Reverting..."));
-    d.executeGitCommandFn("git checkout " + originalBranch, deps);
+    d.executeGitCommandFn(`git checkout "${originalBranch}"`, deps);
     d.executeGitCommandFn("git pull --no-rebase", deps);
     try {
       d.executeGitCommandFn("git stash pop", deps);
@@ -139,7 +153,7 @@ export function restoreStashOrRollback(originalBranch, deps = {}) {
 export async function mergeBranch(fromBranch, toBranch, deps = {}) {
   const d = getDeps(deps);
   switchBranch(toBranch, deps);
-  d.executeGitCommandFn(`git merge --no-ff ${fromBranch}`, deps);
+  d.executeGitCommandFn(`git merge --no-ff "${fromBranch}"`, deps);
   console.log(chalk.green(`Merge of ${fromBranch} into ${toBranch} completed.`));
   pullChanges(deps);
 }
@@ -168,7 +182,7 @@ export function checkConflicts(deps = {}) {
 export function getConflictDiff(file, deps = {}) {
   const d = getDeps(deps);
   try {
-    return d.executeGitCommandFn(`git diff ${file}`, deps);
+    return d.executeGitCommandFn(`git diff "${file}"`, deps);
   } catch (error) {
     console.error(chalk.red(`❌ Error getting conflict diff for '${file}':`), error.message);
     return "";

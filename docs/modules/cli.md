@@ -57,3 +57,11 @@ O arquivo `cli.js` é o ponto de entrada (entrypoint) da ferramenta de linha de 
 5. **Modo Interativo (`inquirer`)**:
    - Ativado quando nenhum parâmetro é fornecido na linha de comando (`!process.argv.slice(2).length`).
    - Apresenta um menu de seleção contendo as opções: `analyze`, `create`, `commit`, `crypto`, `updateTestServer`, `updateProductionServer` e `resetConfig`.
+
+6. **Injeção de Dependências e Testabilidade (`getDeps`, `getCommandAction`)**:
+   - O módulo exporta `getDeps(deps)` e `getCommandAction(cmdName, deps)` permitindo isolamento total de efeitos colaterais em testes unitários e de integração, atingindo 100% de cobertura em linhas, ramificações e funções.
+
+7. **Tratamento Centralizado e Auto-Recuperação (`safeExecuteCommand`)**:
+   - Todos os comandos registrados e opções do menu interativo são envolvidos pela função `safeExecuteCommand`.
+   - Se ocorrer qualquer exceção inesperada durante a execução de qualquer comando ou fluxo (Git, Docker, rede, permissão, etc.), o erro é encaminhado para `diagnoseAndHandleError` em [`src/errorDiagnosticService.js`](file:///d:/GitHub/ai_commit_review/src/errorDiagnosticService.js).
+   - O sistema aciona a busca web com as APIs da NTAPP e a análise da OpenAI para fornecer diagnóstico amigável, sugerir e executar comandos de autocorreção (`AUTO_FIX_CMD`) e reexecutar o fluxo (`retry`) automaticamente em um loop até a conclusão com sucesso.

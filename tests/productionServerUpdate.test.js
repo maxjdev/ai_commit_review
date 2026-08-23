@@ -78,7 +78,7 @@ test("productionServerUpdate.js - Cobertura 100% de Linhas, Branches e Funções
       }
     };
     ensureBranch("teste", depsDiff);
-    assert.equal(checkedOutBranch, "teste");
+    assert.equal(checkedOutBranch, '"teste"');
 
     let checkedOutSame = "";
     const depsSame = {

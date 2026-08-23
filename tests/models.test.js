@@ -38,6 +38,9 @@ test("models.js - Validação 100% de Enums e Constantes (Padrão AAA)", async (
     assert.equal(ConfigKeys.OPENAI_API_KEY, "OPENAI_API_KEY");
     assert.equal(ConfigKeys.OPENAI_API_MODEL, "OPENAI_API_MODEL");
     assert.equal(ConfigKeys.OPENAI_RESPONSE_LANGUAGE, "OPENAI_RESPONSE_LANGUAGE");
+    assert.equal(ConfigKeys.SCRAPING_API_BASEURL, "SCRAPING_API_BASEURL");
+    assert.equal(ConfigKeys.SCRAPING_API_AUTH, "SCRAPING_API_AUTH");
+    assert.equal(ConfigKeys.AUTO_ERROR_DIAGNOSTICS, "AUTO_ERROR_DIAGNOSTICS");
     assert.throws(() => { ConfigKeys.OPENAI_API_KEY = "NOVA_CHAVE"; }, TypeError);
   });
 
@@ -57,6 +60,7 @@ test("models.js - Validação 100% de Enums e Constantes (Padrão AAA)", async (
     // Arrange & Act & Assert
     assert.equal(PromptType.ANALYZE, "analyze");
     assert.equal(PromptType.CREATE, "create");
+    assert.equal(PromptType.DIAGNOSE_ERROR, "diagnose_error");
     assert.throws(() => { PromptType.ANALYZE = "outro"; }, TypeError);
   });
 });

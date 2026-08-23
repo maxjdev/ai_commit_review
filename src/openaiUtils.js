@@ -2,7 +2,11 @@ import chalk from "chalk";
 import { validateConfiguration, updateValidApiKey } from "./configManager.js";
 import { OpenAI } from "openai";
 import { OpenAIModels, PromptType, ModelContextLimits } from "./models.js";
-import { generatePrompt, generateLanguageInstruction } from "./prompts.js";
+import {
+  generatePrompt,
+  generateLanguageInstruction,
+  generateErrorDiagnosticPrompt,
+} from "./prompts.js";
 
 /**
  * Analyzes updated code using OpenAI.
@@ -160,3 +164,27 @@ export async function summarizeText(text, deps = {}) {
     throw error;
   }
 }
+
+/**
+ * Diagnoses an execution error using OpenAI with web search context.
+ */
+export async function diagnoseErrorWithAI(errorData, webContext = "", deps = {}) {
+  const config = await validateConfiguration();
+  const openai = createOpenAIInstance(config, deps);
+  try {
+    const prompt = generateErrorDiagnosticPrompt(errorData, webContext, config);
+    const isGpt5Nano = config.OPENAI_API_MODEL === OpenAIModels.GPT_5_NANO;
+    const requestPayload = {
+      model: config.OPENAI_API_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      ...(isGpt5Nano && { reasoning_effort: "low", verbosity: "low" }),
+    };
+
+    const response = await openai.chat.completions.create(requestPayload);
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error(chalk.red("❌ Error during AI error diagnosis:"), error.message);
+    throw error;
+  }
+}
+

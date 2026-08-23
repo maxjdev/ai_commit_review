@@ -16,6 +16,8 @@ O arquivo [`.env.develop`](file:///d:/GitHub/ai_commit_review/.env.develop) arma
 | `SMTP_USER` | [`src/validateEmail.js`](file:///d:/GitHub/ai_commit_review/src/validateEmail.js) | Nome de usuário / conta de e-mail utilizada na autenticação SMTP (`automacao@ntadvogados.com.br`). |
 | `SMTP_PASS` | [`src/validateEmail.js`](file:///d:/GitHub/ai_commit_review/src/validateEmail.js) | Senha de autenticação do usuário no servidor SMTP. |
 | `FROM_EMAIL` | [`src/validateEmail.js`](file:///d:/GitHub/ai_commit_review/src/validateEmail.js) | Endereço de e-mail remetente (`no-reply@ntapp.com.br`) exibido nas notificações disparadas pela aplicação. |
+| `SCRAPING_API_BASEURL` | [`src/webSearchService.js`](file:///d:/GitHub/ai_commit_review/src/webSearchService.js) | Endpoint base da API de busca/scraping (`https://global.ntapp.com.br/bkp-intra/api`). |
+| `SCRAPING_API_AUTH` | [`src/webSearchService.js`](file:///d:/GitHub/ai_commit_review/src/webSearchService.js) | Credenciais HTTP Basic Auth no formato `usuario:senha` para autenticação nas rotas de busca/scraping. |
 
 ---
 

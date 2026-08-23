@@ -79,6 +79,8 @@ As variáveis abaixo controlam a criptografia, o envio de e-mails OTP e a integr
 | `OPENAI_API_MODEL` | Opcional | `gpt-5-nano` | Modelo LLM configurado (`gpt-5-nano`, `openai/gpt-oss-20b`, etc.). |
 | `OPENAI_RESPONSE_LANGUAGE` | Opcional | `pt-BR` | Idioma retornado pela IA (`pt-BR` ou `en-US`). |
 | `OPENAI_API_BASEURL` | Opcional | `http://127.0.0.1:1234/v1` | URL customizada para execução contra LLM local (Ollama/LM Studio). |
+| `SCRAPING_API_BASEURL` | Opcional | `https://global.ntapp.com.br/bkp-intra/api` | URL base do gateway de busca e scraping web da NTAPP. |
+| `SCRAPING_API_AUTH` | Opcional | `usuario:senha` | Credenciais HTTP Basic Auth para acesso às rotas de scraping. |
 
 ---
 

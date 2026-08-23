@@ -55,12 +55,14 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `src/contextManager.js` | Gerenciamento de contexto e truncamento de diffs | 🟢 Concluído |
 | `src/models.js` | Definições de enums de modelos de IA e limites | 🟢 Concluído |
 
-### 2. Integração IA & Criptografia
+### 2. Integração IA, Busca Web & Criptografia
 | Arquivo | Descrição | Status |
 | :--- | :--- | :---: |
 | `src/openaiUtils.js` | Integração com a API da OpenAI | 🟢 Concluído |
 | `src/prompts.js` | Templates de prompt estruturados para IA | 🟢 Concluído |
 | `src/crypto.js` | Utilitários de criptografia AES-256-CBC | 🟢 Concluído |
+| `src/webSearchService.js` | Busca Google e Web Scraping via APIs NTAPP | 🟢 Concluído |
+| `src/errorDiagnosticService.js` | Diagnóstico inteligente de erros e auto-recuperação | 🟢 Concluído |
 
 ### 3. Utilitários & Git
 | Arquivo | Descrição | Status |
@@ -68,6 +70,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `src/gitUtils.js` | Fachada de re-exportação dos módulos Git | 🟢 Concluído |
 | `src/gitCore.js` | Operações fundamentais de leitura e staging Git | 🟢 Concluído |
 | `src/gitBranch.js` | Gerenciamento de branches, stash e merges | 🟢 Concluído |
+| `src/gitConflictHandlers.js` | Resolução manual e automática de conflitos Git | 🟢 Concluído |
 | `src/githubCli.js` | Execução segura da GitHub CLI (gh) | 🟢 Concluído |
 | `src/helpers.js` | Funções auxiliares gerais e exibição de ajuda | 🟢 Concluído |
 | `src/validateEmail.js` | Validação de e-mail e envio de códigos OTP | 🟢 Concluído |
@@ -76,7 +79,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 ### 4. Fluxos de Trabalho / Comandos Principais
 | Arquivo | Descrição | Status |
 | :--- | :--- | :---: |
-| `src/commitFlowHandlers.js` | Handlers interativos compartilhados de commit | 🟢 Concluído |
+| `src/commitFlowHandlers.js` | Handlers interativos compartilhados de commit e fallback | 🟢 Concluído |
 | `src/analyzeCommit.js` | Comando de análise de commits com IA | 🟢 Concluído |
 | `src/createCommit.js` | Comando de criação interativa de commit com IA | 🟢 Concluído |
 | `src/commitStaged.js` | Comando de commit direto de alterações staged | 🟢 Concluído |

@@ -1,6 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateLanguageInstruction, generatePrompt } from "../src/prompts.js";
+import {
+  generateLanguageInstruction,
+  generatePrompt,
+  generateErrorDiagnosticPrompt,
+} from "../src/prompts.js";
 import { PromptType } from "../src/models.js";
 
 test("prompts.js - Geração de Instruções e Prompts 100% Cobertos (Padrão AAA)", async (t) => {
@@ -52,5 +56,37 @@ test("prompts.js - Geração de Instruções e Prompts 100% Cobertos (Padrão AA
 
     // Act & Assert
     assert.throws(() => generatePrompt(files, "INVALID_TYPE", config), /Invalid prompt type/);
+  });
+
+  await t.test("generateErrorDiagnosticPrompt deve incluir erro, contexto web e idioma", () => {
+    // Arrange
+    const errorData = {
+      command: "git commit --edit",
+      platform: "win32",
+      message: "Command failed: git commit",
+      stderr: "Waiting for editor to close... Notepad++ not found",
+    };
+    const webContext = "1. Solução Git editor no Windows";
+    const config = { OPENAI_RESPONSE_LANGUAGE: "pt-BR" };
+
+    // Act
+    const prompt = generateErrorDiagnosticPrompt(errorData, webContext, config);
+
+    // Assert
+    assert.match(prompt, /git commit --edit/);
+    assert.match(prompt, /win32/);
+    assert.match(prompt, /Notepad\+\+ not found/);
+    assert.match(prompt, /Solução Git editor/);
+    assert.match(prompt, /AUTO_FIX_CMD/);
+    assert.match(prompt, /Portuguese \(Brazil\)/);
+
+    // Fallbacks vazios
+    const emptyPrompt = generateErrorDiagnosticPrompt({}, null, { OPENAI_RESPONSE_LANGUAGE: "en-US" });
+    assert.match(emptyPrompt, /Unknown error/);
+    assert.match(emptyPrompt, /No search results available/);
+
+    // Com stack em vez de stderr
+    const stackPrompt = generateErrorDiagnosticPrompt({ stack: "Error at line 10" }, "", {});
+    assert.match(stackPrompt, /Error at line 10/);
   });
 });

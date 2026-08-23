@@ -33,6 +33,11 @@ export function generatePrompt(files, promptType, config) {
   throw new Error(`Invalid prompt type: ${promptType}`);
 }
 
+export function generateErrorDiagnosticPrompt(errorData, webContext, config) {
+  const languageInstruction = generateLanguageInstruction(config.OPENAI_RESPONSE_LANGUAGE);
+  return buildDiagnoseErrorPrompt(errorData, webContext, languageInstruction);
+}
+
 const ANALYZE_PROMPT_TEMPLATE = `Assume the role of a senior code reviewer.
 
 Analyze in detail the following code changes (commits) provided:
@@ -99,4 +104,38 @@ function buildCreatePrompt(diffs, languageInstruction) {
   return CREATE_PROMPT_TEMPLATE
     .replace("[[DIFFS]]", diffs)
     .replace(/\[\[LANG\]\]/g, languageInstruction);
+}
+
+const DIAGNOSE_ERROR_PROMPT_TEMPLATE = `Assume the role of an expert DevOps and Git systems engineer assistant.
+An error occurred during the execution of the CLI tool 'ai-commit-review'.
+
+**Error Context:**
+- Command / Operation: [[COMMAND]]
+- Platform / OS: [[PLATFORM]]
+- Error Message: [[ERROR_MESSAGE]]
+- Error Details / Stderr: [[STDERR]]
+
+**Web Search Context & Documentation:**
+[[WEB_SEARCH]]
+
+**Instructions:**
+1. **Resumo do Problema (Problem Summary)**: Explain clearly in 1-2 sentences what went wrong.
+2. **Causa Raiz (Root Cause)**: Explain technically why the error happened.
+3. **Soluções Recomendadas (Recommended Solutions)**: Step-by-step instructions on how to solve this immediately.
+4. **Comando de Auto-Correção (Auto-Fix Command)**:
+If there is a specific command that can fix the issue automatically (e.g. \`git config --global core.editor notepad\`), provide it on a single line starting with:
+AUTO_FIX_CMD: <command>
+If no command can automatically fix it safely, write:
+AUTO_FIX_CMD: none
+
+[[LANG]]`;
+
+function buildDiagnoseErrorPrompt(errorData, webContext, languageInstruction) {
+  return DIAGNOSE_ERROR_PROMPT_TEMPLATE
+    .replace("[[COMMAND]]", errorData.command || "N/A")
+    .replace("[[PLATFORM]]", errorData.platform || process.platform)
+    .replace("[[ERROR_MESSAGE]]", errorData.message || "Unknown error")
+    .replace("[[STDERR]]", errorData.stderr || errorData.stack || "N/A")
+    .replace("[[WEB_SEARCH]]", webContext || "No search results available.")
+    .replace("[[LANG]]", languageInstruction);
 }

@@ -18,6 +18,7 @@ O módulo `src/gitCore.js` abstrai as operações de leitura, log, diffs e stagi
 - `clearStage(deps)`: Executa `git reset`.
 - `undoLastCommitSoft(deps)`: Executa `git reset --soft HEAD~1`.
 - `commitChangesWithEditor(tempFilePath, deps)`: Abre o editor com mensagem pré-carregada.
+- `commitDirectlyWithMessageFile(tempFilePath, deps)`: Efetua commit direto usando arquivo de mensagem sem abrir editor externo.
 - `getCommits(skip, limit, deps)`: Retorna lista formatada do histórico Git.
 - `formatGitDate(timestamp)`, `truncateString(str, maxLength)`: Utilitários puros de formatação.
 - `getModifiedFiles(sha, deps)`: Retorna status e arquivos modificados de um commit.

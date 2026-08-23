@@ -6,7 +6,12 @@ process.env.PASSWORD_CRYPTO_KEY = "segredo_teste_key";
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { analyzeUpdatedCode, getModelContextLimit, summarizeText } from "../src/openaiUtils.js";
+import {
+  analyzeUpdatedCode,
+  getModelContextLimit,
+  summarizeText,
+  diagnoseErrorWithAI,
+} from "../src/openaiUtils.js";
 import { saveConfig, deleteConfigFile } from "../src/config.js";
 import { PromptType } from "../src/models.js";
 
@@ -229,6 +234,26 @@ test("openaiUtils.js - Cobertura 100% de Integração com OpenAI (Padrão AAA)",
     await assert.rejects(
       async () => await analyzeUpdatedCode([{ filename: "a.js", diff: "diff" }], "TIPO_INVALIDO", { openaiClient: mockClient }),
       /Invalid prompt type/
+    );
+  });
+
+  await t.test("diagnoseErrorWithAI deve diagnosticar erros e tratar falhas de API", async () => {
+    // Act 1: Sucesso
+    const mockClient = createMockOpenAI("Diagnóstico: Editor não encontrado.\nAUTO_FIX_CMD: git config core.editor notepad");
+    const errorData = {
+      command: "git commit --edit",
+      message: "Command failed",
+      stderr: "Notepad++ not found",
+    };
+    const res = await diagnoseErrorWithAI(errorData, "Doc Git", { openaiClient: mockClient });
+    assert.match(res, /Diagnóstico/);
+    assert.match(res, /AUTO_FIX_CMD/);
+
+    // Act 2: Erro no cliente
+    const mockClientFail = createMockOpenAI("", true, "API Error");
+    await assert.rejects(
+      async () => await diagnoseErrorWithAI(errorData, "Doc Git", { openaiClient: mockClientFail }),
+      /API Error/
     );
   });
 });

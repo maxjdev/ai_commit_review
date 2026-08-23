@@ -58,13 +58,9 @@ test("commitFlowHandlers.js - Cobertura 100% de Linhas, Branches e Funções (Pa
     assert.equal(typeof defaults.getCurrentBranchFn, "function");
     assert.equal(typeof defaults.listBranchesFn, "function");
     assert.equal(typeof defaults.switchBranchFn, "function");
-    assert.equal(typeof defaults.checkConflictsFn, "function");
-    assert.equal(typeof defaults.getConflictDiffFn, "function");
-    assert.equal(typeof defaults.writeConflictToTempFileFn, "function");
-    assert.equal(typeof defaults.openFileInEditorFn, "function");
-    assert.equal(typeof defaults.updateFileFromTempFn, "function");
-    assert.equal(typeof defaults.executeGitCommandFn, "function");
     assert.equal(typeof defaults.commitChangesWithEditorFn, "function");
+    assert.equal(typeof defaults.commitDirectlyWithMessageFileFn, "function");
+    assert.equal(typeof defaults.diagnoseAndHandleErrorFn, "function");
     assert.equal(typeof defaults.undoLastCommitSoftFn, "function");
     assert.equal(typeof defaults.buildContextForFilesFn, "function");
     assert.equal(typeof defaults.analyzeUpdatedCodeFn, "function");
@@ -76,19 +72,16 @@ test("commitFlowHandlers.js - Cobertura 100% de Linhas, Branches e Funções (Pa
       getCurrentBranchFn: dummyFn,
       listBranchesFn: dummyFn,
       switchBranchFn: dummyFn,
-      checkConflictsFn: dummyFn,
-      getConflictDiffFn: dummyFn,
-      writeConflictToTempFileFn: dummyFn,
-      openFileInEditorFn: dummyFn,
-      updateFileFromTempFn: dummyFn,
-      executeGitCommandFn: dummyFn,
       commitChangesWithEditorFn: dummyFn,
+      commitDirectlyWithMessageFileFn: dummyFn,
+      diagnoseAndHandleErrorFn: dummyFn,
       undoLastCommitSoftFn: dummyFn,
       buildContextForFilesFn: dummyFn,
       analyzeUpdatedCodeFn: dummyFn,
       promptFn: dummyFn,
     });
     assert.equal(injected.getCurrentBranchFn, dummyFn);
+    assert.equal(injected.commitDirectlyWithMessageFileFn, dummyFn);
   });
 
   await t.test("confirmOrSwitchBranch deve cobrir o fluxo de continuar na branch e alternar branch", async () => {
@@ -220,6 +213,77 @@ test("commitFlowHandlers.js - Cobertura 100% de Linhas, Branches e Funções (Pa
     };
     const msgManual = await obtainCommitMessage(stagedFiles, depsManualRetry);
     assert.equal(msgManual, "📝 docs: mensagem manual");
+
+    // Act 4: Falha no editor com fallback direto
+    let directCommitted = false;
+    const depsEditorFailDirect = {
+      buildContextForFilesFn: async () => stagedFiles,
+      analyzeUpdatedCodeFn: async () => "✨ feat: fallback direto",
+      commitChangesWithEditorFn: () => { throw new Error("Editor not found"); },
+      commitDirectlyWithMessageFileFn: () => { directCommitted = true; },
+      promptFn: createPromptMock([
+        { messageOption: "ai" },
+        { fallbackChoice: "direct" }
+      ])
+    };
+    const msgDirect = await obtainCommitMessage(stagedFiles, depsEditorFailDirect);
+    assert.equal(msgDirect, "✨ feat: fallback direto");
+    assert.equal(directCommitted, true);
+
+    // Act 5: Falha no editor com diagnóstico de IA
+    let diagnosed = false;
+    let editorRetryCalled = false;
+    const depsEditorFailDiag = {
+      buildContextForFilesFn: async () => stagedFiles,
+      analyzeUpdatedCodeFn: async () => "✨ feat: diag",
+      commitChangesWithEditorFn: (file) => {
+        if (!editorRetryCalled) {
+          editorRetryCalled = true;
+          throw new Error("Editor not found");
+        }
+        fs.writeFileSync(file, "✨ feat: diag pos fix", "utf-8");
+      },
+      diagnoseAndHandleErrorFn: async () => { diagnosed = true; },
+      promptFn: createPromptMock([
+        { messageOption: "ai" },
+        { fallbackChoice: "diagnose" }
+      ])
+    };
+    const msgDiag = await obtainCommitMessage(stagedFiles, depsEditorFailDiag);
+    assert.equal(msgDiag, "✨ feat: diag pos fix");
+    assert.equal(diagnosed, true);
+
+    // Act 6: Falha no editor com fallback manual
+    let manualDirectCommitted = false;
+    const depsEditorFailManual = {
+      buildContextForFilesFn: async () => stagedFiles,
+      analyzeUpdatedCodeFn: async () => "✨ feat: manual prompt",
+      commitChangesWithEditorFn: () => { throw new Error("Editor not found"); },
+      commitDirectlyWithMessageFileFn: () => { manualDirectCommitted = true; },
+      promptFn: createPromptMock([
+        { messageOption: "ai" },
+        { fallbackChoice: "manual" },
+        { manualMsg: "📝 feat: manual input" }
+      ])
+    };
+    const msgFallbackManual = await obtainCommitMessage(stagedFiles, depsEditorFailManual);
+    assert.equal(msgFallbackManual, "📝 feat: manual input");
+    assert.equal(manualDirectCommitted, true);
+
+    // Act 7: Falha no editor com cancelamento
+    const depsEditorFailCancel = {
+      buildContextForFilesFn: async () => stagedFiles,
+      analyzeUpdatedCodeFn: async () => "✨ feat: cancel",
+      commitChangesWithEditorFn: () => { throw new Error("Editor not found"); },
+      promptFn: createPromptMock([
+        { messageOption: "ai" },
+        { fallbackChoice: "cancel" }
+      ])
+    };
+    await assert.rejects(
+      async () => await obtainCommitMessage(stagedFiles, depsEditorFailCancel),
+      /Commit process canceled by user/
+    );
   });
 
   await t.test("handleCommitAbortOrPush deve cobrir abortCommit = true e abortCommit = false", async () => {

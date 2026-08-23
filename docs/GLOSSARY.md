@@ -18,6 +18,10 @@ Este documento formaliza o Dicionário de Domínio e a Linguagem Ubíqua do sist
 | **Validation Code (OTP)** | `codigoMap`, `gerarCodigo` | Código alfanumérico único de 8 caracteres derivado do UUIDv4 enviado por e-mail para validação de identidade com expiração em 10 minutos. | **NÃO É** a API Key da OpenAI. É um token de uso único para verificação de e-mail. |
 | **Local AI** | `configBaseUrlLocal`, `DEEPSEEK_LOCAL` | Execução do modelo LLM em servidor local (ex: LM Studio / Ollama) mapeado na URL `http://127.0.0.1:1234/v1`. | **NÃO É** a API comercial na nuvem da OpenAI (`api.openai.com`). |
 | **Pull Request Release** | `createPullRequest`, `updateServerToProduction` | Solicitação automatizada de merge via GitHub CLI (`gh`) da branch de testes (`teste`) para a branch de produção (`master`). | **NÃO É** um merge direto para a `master`. Requer obrigatoriamente revisão manual. |
+| **Web Search Service** | `searchGoogle`, `scrapeUrl`, `webSearchService.js` | Serviço de consulta e extração em tempo real de páginas e resultados de busca no Google via gateway NTAPP com HTTP Basic Auth. | **NÃO É** uma busca local; é uma consulta web enriquecida para diagnosticar erros em runtime. |
+| **Error Diagnostic Engine** | `diagnoseAndHandleError`, `errorDiagnosticService.js` | Motor inteligente que intercepta exceções, pesquisa causas e documentação na internet e aciona a OpenAI para fornecer diagnóstico e comandos de autocorreção. | **NÃO É** um simples try/catch de log; é um assistente interativo de remediação de falhas. |
+| **Auto-Fix Command** | `AUTO_FIX_CMD`, `parseAutoFixCommand`, `executeAutoFix` | Comando de sistema operacional sintetizado pelo modelo LLM (ex: `git push --set-upstream ...`) pronto para execução direta no terminal do usuário. | **NÃO É** uma instrução textual abstrata; é um comando executável real. |
+| **Auto-Recovery Loop** | `safeExecuteCommand` | Padrão arquitetural no CLI que reexecuta o fluxo que falhou após a aplicação do Auto-Fix até a operação ser concluída com sucesso. | **NÃO É** um loop infinito; é condicionado à confirmação do usuário. |
 
 ---
 

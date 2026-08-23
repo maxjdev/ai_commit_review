@@ -38,10 +38,26 @@ O `ai-commit-review` conecta-se a 4 serviços externos/subprocessos do sistema o
 
 ### 1.4 npm Registry (Verificação de Versão da CLI)
 - **Provedor / Subprocesso**: Registro oficial do npm (`registry.npmjs.org`).
-- **Módulo Responsável**: [`cli.js`](file:///d:/GitHub/ai_commit_review/cli.js) (linhas 14-48).
+- **Módulo Responsável**: [`cli.js`](file:///d:/GitHub/ai_commit_review/cli.js) (função `checkOutdatedLib`).
 - **Comando de Execução**: `npm outdated -g ai-commit-review --json` e `npm update -g ai-commit-review`.
 - **Resiliência**:
   - 🛡️ **Degradação Graciosa**: Se o registro do npm estiver offline ou o terminal sem acesso à internet, o erro é capturado silenciosamente no bloco `try...catch` e a CLI prossegue normalmente com a versão instalada.
+
+### 1.5 APIs de Scraping e Google Search (NTAPP)
+- **Provedor / Serviço**: Gateway de Scraping Web da NTAPP (`https://global.ntapp.com.br/bkp-intra/api`).
+- **Módulo Responsável**: [`src/webSearchService.js`](file:///d:/GitHub/ai_commit_review/src/webSearchService.js) (funções `searchGoogle` e `scrapeUrl`).
+- **Forma de Autenticação**: HTTP Basic Auth (`Authorization: Basic <base64>`) configurado via `SCRAPING_API_AUTH` ou `SCRAPING_API_USER`/`SCRAPING_API_PASS` no `.env` ou `.config.json`.
+- **Rotas**:
+  - `GET /scraping_google_search/?query=<query>&limit=5&format=markdown&ai=true`
+  - `GET /scraping_url/?url=<url>&format=markdown`
+- **Resiliência e Retentativas**:
+  - 🛡️ **Timeout e Fallback Seguro**: Requisições possuem timeout estrito de 8000ms (`AbortSignal.timeout`). Se a API oscilar ou falhar, retorna `{ success: false }` de forma segura sem interromper o fluxo do CLI.
+
+### 1.6 Motor de Diagnóstico de Erros e Auto-Recuperação
+- **Módulo Responsável**: [`src/errorDiagnosticService.js`](file:///d:/GitHub/ai_commit_review/src/errorDiagnosticService.js) e [`cli.js`](file:///d:/GitHub/ai_commit_review/cli.js) (`safeExecuteCommand`).
+- **Finalidade**: Interceptar falhas em tempo de execução, enriquecer o erro com dados da web e obter análise e comando de correção (`AUTO_FIX_CMD`) da OpenAI.
+- **Resiliência**:
+  - Permite ao desenvolvedor executar o comando de auto-fix e reexecutar a operação original (`retry`) em loop contínuo até a conclusão.
 
 ---
 

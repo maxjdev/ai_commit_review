@@ -80,6 +80,20 @@ export function commitChangesWithEditor(tempFilePath, deps = {}) {
 }
 
 /**
+ * Commits changes directly using the message file without opening an editor.
+ */
+export function commitDirectlyWithMessageFile(tempFilePath, deps = {}) {
+  const d = getDeps(deps);
+  try {
+    d.execSyncFn(`git commit --file="${tempFilePath}" --no-verify`, { stdio: "inherit" });
+    console.log(chalk.green("✔ Commit successfully made!"));
+  } catch (error) {
+    console.error(chalk.red("❌ Error making direct commit:"), error.message);
+    throw error;
+  }
+}
+
+/**
  * Retrieves list of commits with details.
  */
 export function getCommits(skip = 0, limit = 5, deps = {}) {
@@ -146,7 +160,7 @@ export function getModifiedFiles(sha, deps = {}) {
  */
 export function getFileDiff(sha, file, deps = {}) {
   try {
-    return executeGitCommand(`git diff ${sha}~1 ${sha} -- ${file} || true`, deps);
+    return executeGitCommand(`git diff ${sha}~1 ${sha} -- "${file}" || true`, deps);
   } catch (error) {
     console.error(chalk.red(`❌ Error diff for file '${file}':`), error.message);
     return "";

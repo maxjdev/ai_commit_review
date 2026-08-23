@@ -63,6 +63,14 @@ O módulo `src/openaiUtils.js` é a camada de integração com a API da OpenAI (
 ### `getModelContextLimit()`
 - **Descrição**: Retorna o limite de tokens de contexto para o modelo ativo na configuração (consultando `ModelContextLimits`).
 
+### `diagnoseErrorWithAI(errorData, webContext, deps = {})`
+- **Descrição**: Envia os detalhes do erro (comando, SO, mensagem, stderr) combinados com o contexto coletado na busca do Google para a OpenAI gerar o diagnóstico com causa raiz e o comando de auto-remediação (`AUTO_FIX_CMD`).
+- **Parâmetros**:
+  - `errorData` (`object`): `{ command, platform, message, stderr, stack }`.
+  - `webContext` (`string`): Resultados formatados da busca Google / Scraping.
+  - `deps` (`object`): Injeção de dependências (`openaiClient`, `OpenAIConstructor`).
+- **Retorno**: `string` contendo a análise gerada pelo modelo.
+
 ### `summarizeText(text, deps = {})`
 - **Descrição**: Sumariza um texto arbitrário utilizando o modelo configurado, respeitando limites e truncamento. Aceita `{ openaiClient, OpenAIConstructor }` em `deps`.
 - **Parâmetros**: `text` (`string`) - Conteúdo a ser resumido.

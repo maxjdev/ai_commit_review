@@ -19,6 +19,9 @@ export const ConfigKeys = Object.freeze({
   OPENAI_API_KEY: "OPENAI_API_KEY",
   OPENAI_API_MODEL: "OPENAI_API_MODEL",
   OPENAI_RESPONSE_LANGUAGE: "OPENAI_RESPONSE_LANGUAGE",
+  SCRAPING_API_BASEURL: "SCRAPING_API_BASEURL",
+  SCRAPING_API_AUTH: "SCRAPING_API_AUTH",
+  AUTO_ERROR_DIAGNOSTICS: "AUTO_ERROR_DIAGNOSTICS",
 });
 
 // Enum for supported languages with popular variations
@@ -30,4 +33,5 @@ export const SupportedLanguages = Object.freeze({
 export const PromptType = Object.freeze({
   ANALYZE: "analyze",
   CREATE: "create",
+  DIAGNOSE_ERROR: "diagnose_error",
 });
