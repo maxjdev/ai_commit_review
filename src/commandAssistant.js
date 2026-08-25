@@ -118,6 +118,7 @@ export async function handleAIAssistance(enteredCommand, deps = {}) {
   ]);
 
   try {
+    console.log(chalk.yellow("\n🔍 Consultando a IA para identificar a melhor ação..."));
     const aiResponse = await d.askAIAssistantForCommandFn(
       {
         enteredCommand,

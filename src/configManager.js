@@ -44,7 +44,7 @@ export async function setBaseURLOpenAILocal(config, configBaseUrlLocalFn = confi
     const isLocal = await configBaseUrlLocalFn();
     if (isLocal) {
       config[ConfigKeys.OPENAI_API_BASEURL] = "http://127.0.0.1:1234/v1";
-      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GEMMA_4_31B_QAT;
+      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.OSS_20B_LOCAL;
       config[ConfigKeys.OPENAI_API_KEY] = "local";
       saveConfig(config);
       console.log(
@@ -67,7 +67,7 @@ export function setDefaultModel(config) {
     if (config[ConfigKeys.OPENAI_API_KEY] !== 'local') {
       config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GPT_5_NANO;
     } else {
-      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GEMMA_4_31B_QAT;
+      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.OSS_20B_LOCAL;
     }
     saveConfig(config);
     console.log(
@@ -164,9 +164,9 @@ function validateConfigKey(key) {
   if (!validKeys.includes(key)) {
     throw new Error(
       `Invalid configuration key "${key}".\n\n` +
-        `Available keys:\n` +
-        validKeys.map((k) => `  - ${k}`).join("\n") +
-        `\n\nUse one of the listed keys.`
+      `Available keys:\n` +
+      validKeys.map((k) => `  - ${k}`).join("\n") +
+      `\n\nUse one of the listed keys.`
     );
   }
 }
@@ -177,9 +177,9 @@ function validateConfigValue(key, value) {
     if (!validModels.includes(value)) {
       throw new Error(
         `❌ Invalid AI model provided.\n\n` +
-          `Available models:\n` +
-          validModels.map((model) => `  - ${model}`).join("\n") +
-          `\n\nUse one of the listed models.`
+        `Available models:\n` +
+        validModels.map((model) => `  - ${model}`).join("\n") +
+        `\n\nUse one of the listed models.`
       );
     }
   }
@@ -191,11 +191,11 @@ function validateConfigValue(key, value) {
     if (!validLanguages.includes(value)) {
       throw new Error(
         `❌ Invalid language code "${value}" provided.\n\n` +
-          `Supported languages:\n` +
-          Object.values(SupportedLanguages)
-            .map((lang) => `  - ${lang.code}: ${lang.name}`)
-            .join("\n") +
-          `\n\nUse one of the listed language codes.`
+        `Supported languages:\n` +
+        Object.values(SupportedLanguages)
+          .map((lang) => `  - ${lang.code}: ${lang.name}`)
+          .join("\n") +
+        `\n\nUse one of the listed language codes.`
       );
     }
   }

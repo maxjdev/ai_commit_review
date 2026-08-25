@@ -26,7 +26,7 @@ O módulo `src/configManager.js` é o gerenciador central de configurações da 
 - **Fluxo**:
   1. Carrega as configurações via `loadConfig()`.
   2. Verifica e aplica configurações para servidor local AI via `setBaseURLOpenAILocal(config)`.
-  3. Aplica modelo padrão via `setDefaultModel(config)` (`GPT_5_NANO` para chaves remotas ou `GEMMA_4_31B_QAT` para chave `'local'`).
+  3. Aplica modelo padrão via `setDefaultModel(config)` (`GPT_5_NANO` para chaves remotas ou `OSS_20B_LOCAL` para chave `'local'`).
   4. Aplica idioma padrão via `setDefaultLanguage(config)` (`pt-BR`).
   5. Caso não existam `OPENAI_API_KEY` nem `OPENAI_API_BASEURL`:
      - Tenta validação por e-mail via `configByNTAPPEmail()`.
@@ -57,7 +57,7 @@ O módulo `src/configManager.js` é o gerenciador central de configurações da 
 - **Descrição**: Caso `OPENAI_API_BASEURL` e `OPENAI_API_MODEL` não estejam definidos, verifica se há um servidor local ativo via `configBaseUrlLocal()`.
 - **Configurações Locais Padrão**:
   - `OPENAI_API_BASEURL`: `"http://127.0.0.1:1234/v1"`
-  - `OPENAI_API_MODEL`: `OpenAIModels.GEMMA_4_31B_QAT`
+  - `OPENAI_API_MODEL`: `OpenAIModels.OSS_20B_LOCAL`
   - `OPENAI_API_KEY`: `"local"`
 
 ### `updateValidApiKey()`

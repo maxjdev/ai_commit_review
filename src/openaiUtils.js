@@ -196,6 +196,7 @@ export async function askAIAssistantForCommand(queryData, deps = {}) {
   const config = await validateConfiguration();
   const openai = createOpenAIInstance(config, deps);
   try {
+    console.log(chalk.blue("📤 Enviando solicitação para a IA..."));
     const prompt = generateCommandAssistantPrompt(queryData, config);
     const isGpt5Nano = config.OPENAI_API_MODEL === OpenAIModels.GPT_5_NANO;
     const requestPayload = {
@@ -205,6 +206,7 @@ export async function askAIAssistantForCommand(queryData, deps = {}) {
     };
 
     const response = await openai.chat.completions.create(requestPayload);
+    console.log(chalk.green("✅ Resposta recebida da IA."));
     return response.choices[0].message.content.trim();
   } catch (error) {
     console.error(chalk.red("❌ Error during AI command assistance:"), error.message);
