@@ -11,6 +11,7 @@ import {
   getModelContextLimit,
   summarizeText,
   diagnoseErrorWithAI,
+  askAIAssistantForCommand,
 } from "../src/openaiUtils.js";
 import { saveConfig, deleteConfigFile } from "../src/config.js";
 import { PromptType } from "../src/models.js";
@@ -256,4 +257,29 @@ test("openaiUtils.js - Cobertura 100% de Integração com OpenAI (Padrão AAA)",
       /API Error/
     );
   });
+
+  await t.test("askAIAssistantForCommand deve consultar a IA para orientar comandos e tratar falhas", async () => {
+    // Arrange
+    const mockClientSuccess = createMockOpenAI("Para atualizar o servidor de testes, utilize:\nSUGGESTED_CMD: acr updateTestServer");
+    const queryData = {
+      enteredCommand: "teste",
+      userQuery: "atualizar ambiente de teste",
+      availableCommands: [{ signature: "acr updateTestServer", description: "Atualiza testes" }],
+    };
+
+    // Act 1: Sucesso com gpt-5-nano
+    const res = await askAIAssistantForCommand(queryData, { openaiClient: mockClientSuccess });
+
+    // Assert
+    assert.match(res, /updateTestServer/);
+    assert.match(res, /SUGGESTED_CMD/);
+
+    // Act 2: Erro na API
+    const mockClientError = createMockOpenAI("", true, "OpenAI Assistant Rate Limit");
+    await assert.rejects(
+      async () => await askAIAssistantForCommand(queryData, { openaiClient: mockClientError }),
+      /Rate Limit/
+    );
+  });
 });
+

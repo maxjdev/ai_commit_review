@@ -15,6 +15,7 @@ import {
 test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA)", async (t) => {
   await t.test("getDeps deve retornar dependências padrão e injetadas", () => {
     const defaultDeps = getDeps();
+    assert.equal(typeof defaultDeps.handleUnknownCommandFn, "function");
     assert.equal(typeof defaultDeps.diagnoseAndHandleErrorFn, "function");
     assert.equal(typeof defaultDeps.execSyncFn, "function");
     assert.equal(typeof defaultDeps.resetConfigFn, "function");
@@ -31,6 +32,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.equal(defaultDeps.isTesting, false);
 
     const customDeps = getDeps({
+      handleUnknownCommandFn: "unknownHandler",
       diagnoseAndHandleErrorFn: "diag",
       execSyncFn: "exec",
       resetConfigFn: "reset",
@@ -48,6 +50,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
       updateServerToProduction: "prodServ",
       resetConfig: "resetCfg",
     });
+    assert.equal(customDeps.handleUnknownCommandFn, "unknownHandler");
     assert.equal(customDeps.diagnoseAndHandleErrorFn, "diag");
     assert.equal(customDeps.execSyncFn, "exec");
     assert.equal(customDeps.isTesting, true);
@@ -443,6 +446,89 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
       commandActionMap: { testCmd: async () => {} },
       diagnoseAndHandleErrorFn: async () => ({ action: "cancel" }),
     });
+
+    // runCliFlow com comando desconhecido (commander.unknownCommand)
+    let handledUnknownCmd = "";
+    const mockProgUnknown = {
+      command: () => ({ description: () => ({ action: () => {} }) }),
+      name: () => mockProgUnknown,
+      description: () => mockProgUnknown,
+      parse: () => {
+        const err = new Error("unknown command 'teste'");
+        err.code = "commander.unknownCommand";
+        throw err;
+      },
+    };
+    await runCliFlow(["node", "cli.js", "teste"], {
+      ensureValidApiKeyFn: async () => {},
+      program: mockProgUnknown,
+      execSyncFn: () => "{}",
+      handleUnknownCommandFn: async (cmd) => {
+        handledUnknownCmd = cmd;
+      },
+    });
+    assert.equal(handledUnknownCmd, "teste");
+
+    // runCliFlow com opção desconhecida (commander.unknownOption) e argv com string vazia
+    let handledUnknownOpt = "";
+    const mockProgUnknownOpt = {
+      command: () => ({ description: () => ({ action: () => {} }) }),
+      name: () => mockProgUnknownOpt,
+      description: () => mockProgUnknownOpt,
+      parse: () => {
+        const err = new Error("unknown option '--foo'");
+        err.code = "commander.unknownOption";
+        throw err;
+      },
+    };
+    await runCliFlow(["node", "cli.js", ""], {
+      ensureValidApiKeyFn: async () => {},
+      program: mockProgUnknownOpt,
+      execSyncFn: () => "{}",
+      handleUnknownCommandFn: async (cmd) => {
+        handledUnknownOpt = cmd;
+      },
+    });
+    assert.equal(handledUnknownOpt, "unknown");
+
+    // runCliFlow com helpDisplayed (não relança erro)
+    const mockProgHelp = {
+      command: () => ({ description: () => ({ action: () => {} }) }),
+      name: () => mockProgHelp,
+      description: () => mockProgHelp,
+      parse: () => {
+        const err = new Error("help displayed");
+        err.code = "commander.helpDisplayed";
+        throw err;
+      },
+    };
+    await assert.doesNotReject(async () => {
+      await runCliFlow(["node", "cli.js", "--help"], {
+        ensureValidApiKeyFn: async () => {},
+        program: mockProgHelp,
+        execSyncFn: () => "{}",
+      });
+    });
+
+    // runCliFlow com erro genérico do Commander (deve relançar erro)
+    const mockProgCrash = {
+      command: () => ({ description: () => ({ action: () => {} }) }),
+      name: () => mockProgCrash,
+      description: () => mockProgCrash,
+      parse: () => {
+        const err = new Error("Parser critical error");
+        err.code = "commander.otherError";
+        throw err;
+      },
+    };
+    await assert.rejects(async () => {
+      await runCliFlow(["node", "cli.js", "crash"], {
+        ensureValidApiKeyFn: async () => {},
+        program: mockProgCrash,
+        execSyncFn: () => "{}",
+      });
+    }, /Parser critical error/);
   });
 });
+
 

@@ -6,6 +6,7 @@ import {
   generatePrompt,
   generateLanguageInstruction,
   generateErrorDiagnosticPrompt,
+  generateCommandAssistantPrompt,
 } from "./prompts.js";
 
 /**
@@ -187,4 +188,28 @@ export async function diagnoseErrorWithAI(errorData, webContext = "", deps = {})
     throw error;
   }
 }
+
+/**
+ * Asks AI for command recommendation and guidance.
+ */
+export async function askAIAssistantForCommand(queryData, deps = {}) {
+  const config = await validateConfiguration();
+  const openai = createOpenAIInstance(config, deps);
+  try {
+    const prompt = generateCommandAssistantPrompt(queryData, config);
+    const isGpt5Nano = config.OPENAI_API_MODEL === OpenAIModels.GPT_5_NANO;
+    const requestPayload = {
+      model: config.OPENAI_API_MODEL,
+      messages: [{ role: "user", content: prompt }],
+      ...(isGpt5Nano && { reasoning_effort: "low", verbosity: "low" }),
+    };
+
+    const response = await openai.chat.completions.create(requestPayload);
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error(chalk.red("❌ Error during AI command assistance:"), error.message);
+    throw error;
+  }
+}
+
 

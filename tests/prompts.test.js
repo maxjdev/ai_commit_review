@@ -4,6 +4,7 @@ import {
   generateLanguageInstruction,
   generatePrompt,
   generateErrorDiagnosticPrompt,
+  generateCommandAssistantPrompt,
 } from "../src/prompts.js";
 import { PromptType } from "../src/models.js";
 
@@ -89,4 +90,34 @@ test("prompts.js - Geração de Instruções e Prompts 100% Cobertos (Padrão AA
     const stackPrompt = generateErrorDiagnosticPrompt({ stack: "Error at line 10" }, "", {});
     assert.match(stackPrompt, /Error at line 10/);
   });
+
+  await t.test("generateCommandAssistantPrompt deve formatar prompt com comando, query, lista e idioma", () => {
+    // Arrange
+    const queryData = {
+      enteredCommand: "teste",
+      userQuery: "Quero atualizar o servidor de testes",
+      availableCommands: [
+        { signature: "acr updateTestServer", description: "Atualiza servidor teste" },
+        { signature: "acr create", description: "Cria commit" },
+      ],
+    };
+    const configPt = { OPENAI_RESPONSE_LANGUAGE: "pt-BR" };
+
+    // Act 1: com lista de comandos informada
+    const promptPt = generateCommandAssistantPrompt(queryData, configPt);
+
+    // Assert
+    assert.match(promptPt, /teste/);
+    assert.match(promptPt, /Quero atualizar o servidor de testes/);
+    assert.match(promptPt, /acr updateTestServer: Atualiza servidor teste/);
+    assert.match(promptPt, /Portuguese \(Brazil\)/);
+    assert.match(promptPt, /SUGGESTED_CMD/);
+
+    // Act 2: com queryData vazio (testando fallbacks)
+    const promptFallback = generateCommandAssistantPrompt(null, { OPENAI_RESPONSE_LANGUAGE: "en-US" });
+    assert.match(promptFallback, /N\/A/);
+    assert.match(promptFallback, /acr analyze/);
+    assert.match(promptFallback, /English \(US\)/);
+  });
 });
+

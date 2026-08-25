@@ -10,6 +10,7 @@ import { criptografarcli } from "./src/crypto.js";
 import { updateServerToTest } from "./src/testServerUpdate.js";
 import { updateServerToProduction } from "./src/productionServerUpdate.js";
 import { diagnoseAndHandleError } from "./src/errorDiagnosticService.js";
+import { handleUnknownCommand } from "./src/commandAssistant.js";
 import { execSync } from "child_process";
 
 export const commandActionMap = Object.freeze({
@@ -24,6 +25,7 @@ export const commandActionMap = Object.freeze({
 
 export function getDeps(deps = {}) {
   return {
+    handleUnknownCommandFn: deps.handleUnknownCommandFn || handleUnknownCommand,
     diagnoseAndHandleErrorFn: deps.diagnoseAndHandleErrorFn || diagnoseAndHandleError,
     execSyncFn: deps.execSyncFn || execSync,
     resetConfigFn: deps.resetConfigFn || resetConfig,
@@ -112,6 +114,8 @@ export async function checkOutdatedLib(deps = {}) {
 
 export function registerCliCommands(prog, deps = {}) {
   const d = getDeps(deps);
+  if (typeof prog.exitOverride === "function") prog.exitOverride();
+  if (typeof prog.configureOutput === "function") prog.configureOutput({ writeErr: () => {} });
   prog.helpInformation = showHelp;
   prog.name("acr").description("A tool to analyze commits and create new ones with AI assistance");
 
@@ -172,7 +176,20 @@ export async function runCliFlow(argv = process.argv, deps = {}) {
   if (!argv.slice(2).length) {
     await runInteractiveMenu(deps);
   } else {
-    prog.parse(argv);
+    try {
+      prog.parse(argv);
+    } catch (err) {
+      if (err?.code === "commander.unknownCommand" || err?.code === "commander.unknownOption") {
+        const unknownCmd = argv[2] || "unknown";
+        await d.handleUnknownCommandFn(unknownCmd, {
+          ...deps,
+          safeExecuteCommandFn: safeExecuteCommand,
+          commandActionMap: d.commandActionMap,
+        });
+      } else if (err?.code !== "commander.helpDisplayed" && err?.code !== "commander.version") {
+        throw err;
+      }
+    }
   }
 }
 

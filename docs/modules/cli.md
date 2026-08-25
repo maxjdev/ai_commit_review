@@ -22,6 +22,7 @@ O arquivo `cli.js` é o ponto de entrada (entrypoint) da ferramenta de linha de 
 - [`src/crypto.js`](file:///d:/GitHub/ai_commit_review/src/crypto.js): Funcionalidades de criptografia (`criptografarcli`).
 - [`src/testServerUpdate.js`](file:///d:/GitHub/ai_commit_review/src/testServerUpdate.js): Script de atualização de servidor de testes (`updateServerToTest`).
 - [`src/productionServerUpdate.js`](file:///d:/GitHub/ai_commit_review/src/productionServerUpdate.js): Script de atualização de servidor de produção (`updateServerToProduction`).
+- [`src/commandAssistant.js`](file:///d:/GitHub/ai_commit_review/src/commandAssistant.js): Tratamento de comandos não reconhecidos e assistência de IA (`handleUnknownCommand`).
 
 ---
 
@@ -65,3 +66,10 @@ O arquivo `cli.js` é o ponto de entrada (entrypoint) da ferramenta de linha de 
    - Todos os comandos registrados e opções do menu interativo são envolvidos pela função `safeExecuteCommand`.
    - Se ocorrer qualquer exceção inesperada durante a execução de qualquer comando ou fluxo (Git, Docker, rede, permissão, etc.), o erro é encaminhado para `diagnoseAndHandleError` em [`src/errorDiagnosticService.js`](file:///d:/GitHub/ai_commit_review/src/errorDiagnosticService.js).
    - O sistema aciona a busca web com as APIs da NTAPP e a análise da OpenAI para fornecer diagnóstico amigável, sugerir e executar comandos de autocorreção (`AUTO_FIX_CMD`) e reexecutar o fluxo (`retry`) automaticamente em um loop até a conclusão com sucesso.
+
+8. **Tratamento de Comandos Desconhecidos (`handleUnknownCommand`)**:
+   - O Commander é configurado com `exitOverride()` e `configureOutput({ writeErr: () => {} })`.
+   - Quando um comando desconhecido é executado (ex: `acr test`, `acr teste`), o fluxo captura `commander.unknownCommand` / `commander.unknownOption` e aciona `handleUnknownCommand` em [`src/commandAssistant.js`](file:///d:/GitHub/ai_commit_review/src/commandAssistant.js).
+   - O sistema lista todos os comandos válidos com suas descrições e abre menu interativo oferecendo assistência com IA ou seleção manual.
+
+

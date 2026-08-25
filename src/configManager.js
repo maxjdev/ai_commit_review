@@ -44,7 +44,7 @@ export async function setBaseURLOpenAILocal(config, configBaseUrlLocalFn = confi
     const isLocal = await configBaseUrlLocalFn();
     if (isLocal) {
       config[ConfigKeys.OPENAI_API_BASEURL] = "http://127.0.0.1:1234/v1";
-      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.OSS_20B_LOCAL;
+      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GEMMA_4_31B_QAT;
       config[ConfigKeys.OPENAI_API_KEY] = "local";
       saveConfig(config);
       console.log(
@@ -67,7 +67,7 @@ export function setDefaultModel(config) {
     if (config[ConfigKeys.OPENAI_API_KEY] !== 'local') {
       config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GPT_5_NANO;
     } else {
-      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.OSS_20B_LOCAL;
+      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.GEMMA_4_31B_QAT;
     }
     saveConfig(config);
     console.log(

@@ -99,7 +99,7 @@ test("configManager.js - Cobertura 100% de Gerenciamento de Configuração (Padr
     setupInquirerMock({ isLocal: true });
     const confLocal = await setBaseURLOpenAILocal({});
     assert.equal(confLocal.OPENAI_API_KEY, "local");
-    assert.equal(confLocal.OPENAI_API_MODEL, "openai/gpt-oss-20b");
+    assert.equal(confLocal.OPENAI_API_MODEL, "google/gemma-4-31b-qat");
 
     // Act 2: inquirer recusando local
     setupInquirerMock({ isLocal: false });
@@ -116,7 +116,7 @@ test("configManager.js - Cobertura 100% de Gerenciamento de Configuração (Padr
     deleteConfigFile();
     saveConfig({ OPENAI_API_KEY: "local" });
     const confLocal = await validateConfiguration();
-    assert.equal(confLocal.OPENAI_API_MODEL, "openai/gpt-oss-20b");
+    assert.equal(confLocal.OPENAI_API_MODEL, "google/gemma-4-31b-qat");
 
     // Act 2: Sem chave, recusando local e confirmando NTapp
     deleteConfigFile();

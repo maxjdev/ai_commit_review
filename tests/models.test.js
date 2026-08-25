@@ -13,10 +13,12 @@ test("models.js - Validação 100% de Enums e Constantes (Padrão AAA)", async (
     // Arrange & Act
     const nano = OpenAIModels.GPT_5_NANO;
     const local = OpenAIModels.OSS_20B_LOCAL;
+    const gemma = OpenAIModels.GEMMA_4_31B_QAT;
 
     // Assert
     assert.equal(nano, "gpt-5-nano");
     assert.equal(local, "openai/gpt-oss-20b");
+    assert.equal(gemma, "google/gemma-4-31b-qat");
     assert.throws(() => { OpenAIModels.GPT_5_NANO = "outro"; }, TypeError);
   });
 
@@ -24,11 +26,13 @@ test("models.js - Validação 100% de Enums e Constantes (Padrão AAA)", async (
     // Arrange & Act
     const nanoLimit = ModelContextLimits["gpt-5-nano"];
     const localLimit = ModelContextLimits["openai/gpt-oss-20b"];
+    const gemmaLimit = ModelContextLimits["google/gemma-4-31b-qat"];
     const defaultLimit = ModelContextLimits["default"];
 
     // Assert
     assert.equal(nanoLimit, 128000);
     assert.equal(localLimit, 8000);
+    assert.equal(gemmaLimit, 8000);
     assert.equal(defaultLimit, 8000);
   });
 

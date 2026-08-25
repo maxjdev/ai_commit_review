@@ -38,6 +38,11 @@ export function generateErrorDiagnosticPrompt(errorData, webContext, config) {
   return buildDiagnoseErrorPrompt(errorData, webContext, languageInstruction);
 }
 
+export function generateCommandAssistantPrompt(queryData, config) {
+  const languageInstruction = generateLanguageInstruction(config.OPENAI_RESPONSE_LANGUAGE);
+  return buildCommandAssistantPrompt(queryData, languageInstruction);
+}
+
 const ANALYZE_PROMPT_TEMPLATE = `Assume the role of a senior code reviewer.
 
 Analyze in detail the following code changes (commits) provided:
@@ -139,3 +144,36 @@ function buildDiagnoseErrorPrompt(errorData, webContext, languageInstruction) {
     .replace("[[WEB_SEARCH]]", webContext || "No search results available.")
     .replace("[[LANG]]", languageInstruction);
 }
+
+const COMMAND_ASSISTANT_PROMPT_TEMPLATE = `Assume the role of an expert CLI Assistant for the tool 'ai-commit-review' (command 'acr').
+The user entered an unknown or mistyped command and needs help finding the right action.
+
+**User Interaction Context:**
+- Entered Command: [[ENTERED_COMMAND]]
+- User Need / Objective: [[USER_QUERY]]
+- Available CLI Commands:
+[[AVAILABLE_COMMANDS]]
+
+**Instructions:**
+1. **Orientações (Guidance)**: In a friendly and concise way (2-4 sentences), explain which command the user should use and what it does.
+2. **Comando Sugerido (Suggested Command)**:
+If an 'acr' command (or a standard development command like \`npm test\`, \`git status\`, etc.) directly meets the user's need, specify it on a single line starting with:
+SUGGESTED_CMD: <command>
+(e.g., \`SUGGESTED_CMD: acr updateTestServer\`, \`SUGGESTED_CMD: acr create\`, \`SUGGESTED_CMD: npm test\`)
+If no specific command directly applies, write:
+SUGGESTED_CMD: none
+
+[[LANG]]`;
+
+function buildCommandAssistantPrompt(queryData, languageInstruction) {
+  const cmdsText = Array.isArray(queryData?.availableCommands)
+    ? queryData.availableCommands.map((c) => `- ${c.signature || c.name}: ${c.description}`).join("\n")
+    : "acr analyze, acr create, acr commit, acr crypto, acr updateTestServer, acr updateProductionServer, acr resetConfig, acr set_config";
+
+  return COMMAND_ASSISTANT_PROMPT_TEMPLATE
+    .replace("[[ENTERED_COMMAND]]", queryData?.enteredCommand || "N/A")
+    .replace("[[USER_QUERY]]", queryData?.userQuery || "N/A")
+    .replace("[[AVAILABLE_COMMANDS]]", cmdsText)
+    .replace("[[LANG]]", languageInstruction);
+}
+

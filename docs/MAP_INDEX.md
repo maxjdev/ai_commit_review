@@ -63,6 +63,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `src/crypto.js` | Utilitários de criptografia AES-256-CBC | 🟢 Concluído |
 | `src/webSearchService.js` | Busca Google e Web Scraping via APIs NTAPP | 🟢 Concluído |
 | `src/errorDiagnosticService.js` | Diagnóstico inteligente de erros e auto-recuperação | 🟢 Concluído |
+| `src/commandAssistant.js` | Interceptação de comandos inválidos e assistência de IA | 🟢 Concluído |
 
 ### 3. Utilitários & Git
 | Arquivo | Descrição | Status |
