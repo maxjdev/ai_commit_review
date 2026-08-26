@@ -53,6 +53,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `src/config.js` | Objeto de configuração base e IO de arquivo | 🟢 Concluído |
 | `src/configManager.js` | Gerenciador de configurações e chaves de API | 🟢 Concluído |
 | `src/contextManager.js` | Gerenciamento de contexto e truncamento de diffs | 🟢 Concluído |
+| `src/tokenBudget.js` | Estimativa e orçamento de tokens para prompts | 🟢 Concluído |
 | `src/models.js` | Definições de enums de modelos de IA e limites | 🟢 Concluído |
 
 ### 2. Integração IA, Busca Web & Criptografia

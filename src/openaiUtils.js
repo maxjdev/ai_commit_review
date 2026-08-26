@@ -1,13 +1,22 @@
 import chalk from "chalk";
 import { validateConfiguration, updateValidApiKey } from "./configManager.js";
 import { OpenAI } from "openai";
-import { OpenAIModels, PromptType, ModelContextLimits } from "./models.js";
+import { OpenAIModels, PromptType, ModelContextLimits, ConfigKeys } from "./models.js";
+import {
+  estimateTokens,
+  computePromptBudget,
+  truncateToTokenBudget,
+  fitPromptToBudget,
+} from "./tokenBudget.js";
 import {
   generatePrompt,
   generateLanguageInstruction,
   generateErrorDiagnosticPrompt,
   generateCommandAssistantPrompt,
 } from "./prompts.js";
+
+const RESERVED_FOR_ANALYSIS_RESPONSE = 2000;
+const RESERVED_FOR_SUMMARY_RESPONSE = 1000;
 
 /**
  * Analyzes updated code using OpenAI.
@@ -35,46 +44,28 @@ export async function analyzeUpdatedCode(
 ) {
   const config = await validateConfiguration();
   const openai = createOpenAIInstance(config, deps);
-  
-  const prompt = generatePrompt(files, promptType, config);
-  
-  // Validate prompt size against model context limit
+
+  const buildPrompt = (currentFiles) => generatePrompt(currentFiles, promptType, config);
   const contextLimit = await getModelContextLimit();
-  const RESERVED_FOR_RESPONSE = 2000; // Reserve tokens for the AI response
-  const estimatedPromptTokens = Math.ceil(prompt.length / 4);
-  const maxAllowedTokens = contextLimit - RESERVED_FOR_RESPONSE;
-  
-  if (estimatedPromptTokens > maxAllowedTokens) {
-    // Prompt is too large - need to reduce file diffs
-    console.warn(chalk.yellow(`⚠️  Prompt too large (${estimatedPromptTokens} tokens). Truncating files to fit ${maxAllowedTokens} tokens...`));
-    
-    // Calculate how much we need to reduce
-    const maxDiffCharsTotal = Math.floor(maxAllowedTokens * 4 * 0.6); // 60% of available space for diffs
-    let currentDiffChars = files.reduce((sum, f) => sum + (f.diff || "").length, 0);
-    
-    if (currentDiffChars > maxDiffCharsTotal) {
-      const ratio = maxDiffCharsTotal / currentDiffChars;
-      const truncatedFiles = files.map(file => {
-        const maxDiffChars = Math.floor((file.diff || "").length * ratio);
-        if ((file.diff || "").length > maxDiffChars) {
-          return {
-            ...file,
-            diff: file.diff.substring(0, maxDiffChars) + "\n... [truncated due to model context limit]"
-          };
-        }
-        return file;
-      });
-      
-      // Regenerate prompt with truncated files
-      const newPrompt = generatePrompt(truncatedFiles, promptType, config);
-      const newEstimatedTokens = Math.ceil(newPrompt.length / 4);
-      console.log(chalk.yellow(`✂️  Reduced from ${estimatedPromptTokens} to ${newEstimatedTokens} tokens`));
-      
-      return analyzeWithPrompt(openai, newPrompt, config, files, promptType, deps);
-    }
-  }
-  
+  const maxPromptTokens = computePromptBudget(contextLimit, RESERVED_FOR_ANALYSIS_RESPONSE);
+
+  const prompt = buildFittedPrompt(files, buildPrompt, maxPromptTokens);
+
   return analyzeWithPrompt(openai, prompt, config, files, promptType, deps);
+}
+
+function buildFittedPrompt(files, buildPrompt, maxPromptTokens) {
+  const originalTokens = estimateTokens(buildPrompt(files));
+  if (originalTokens <= maxPromptTokens) {
+    return buildPrompt(files);
+  }
+
+  console.warn(
+    chalk.yellow(`⚠️  Prompt too large (~${originalTokens} tokens). Truncating to fit ${maxPromptTokens} tokens...`)
+  );
+  const { prompt } = fitPromptToBudget(files, buildPrompt, maxPromptTokens);
+  console.log(chalk.yellow(`✂️  Reduced from ~${originalTokens} to ~${estimateTokens(prompt)} tokens`));
+  return prompt;
 }
 
 async function analyzeWithPrompt(openai, prompt, config, files, promptType, deps = {}) {
@@ -109,25 +100,29 @@ async function analyzeWithPrompt(openai, prompt, config, files, promptType, deps
 
 /**
  * Get the context token limit for the configured model.
+ * The `OPENAI_API_CONTEXT_LIMIT` configuration key overrides the built-in table,
+ * allowing local runtimes (LM Studio, Ollama) to declare their real `n_ctx`.
  * @returns {Promise<number>} The token limit for the model
  */
 export async function getModelContextLimit() {
   const config = await validateConfiguration();
+  const configuredLimit = Number(config[ConfigKeys.OPENAI_API_CONTEXT_LIMIT]);
+  if (Number.isFinite(configuredLimit) && configuredLimit > 0) {
+    return Math.floor(configuredLimit);
+  }
   const model = config.OPENAI_API_MODEL;
   return ModelContextLimits[model] || ModelContextLimits["default"];
 }
 
 function truncateTextForSummary(text, promptPrefix, contextLimit) {
-  const RESERVED_FOR_RESPONSE = 1000;
-  const prefixTokens = Math.ceil(promptPrefix.length / 4);
-  const maxTextTokens = contextLimit - RESERVED_FOR_RESPONSE - prefixTokens;
-  const maxTextChars = maxTextTokens * 4;
+  const promptBudget = computePromptBudget(contextLimit, RESERVED_FOR_SUMMARY_RESPONSE);
+  const maxTextTokens = promptBudget - estimateTokens(promptPrefix);
 
-  if (text.length > maxTextChars) {
-    console.warn(chalk.yellow(`⚠️  Text truncated from ${text.length} to ${maxTextChars} chars to fit model context`));
-    return text.substring(0, maxTextChars) + "\n... [truncated]";
+  const truncated = truncateToTokenBudget(text, maxTextTokens);
+  if (truncated.length < (text || "").length) {
+    console.warn(chalk.yellow(`⚠️  Text truncated from ${text.length} to ${truncated.length} chars to fit model context`));
   }
-  return text;
+  return truncated;
 }
 
 /**
@@ -144,14 +139,9 @@ export async function summarizeText(text, deps = {}) {
     
     const contextLimit = await getModelContextLimit();
     const contentToSummarize = truncateTextForSummary(text, promptPrefix, contextLimit);
-    
-    const fullPrompt = promptPrefix + contentToSummarize;
-    const estimatedTokens = Math.ceil(fullPrompt.length / 4);
-    const RESERVED_FOR_RESPONSE = 1000;
-    
-    if (estimatedTokens + RESERVED_FOR_RESPONSE > contextLimit) {
-      throw new Error(`Prompt too large: ${estimatedTokens} tokens (+ ${RESERVED_FOR_RESPONSE} for response) exceeds limit of ${contextLimit}`);
-    }
+
+    const promptBudget = computePromptBudget(contextLimit, RESERVED_FOR_SUMMARY_RESPONSE);
+    const fullPrompt = truncateToTokenBudget(promptPrefix + contentToSummarize, promptBudget);
 
     const requestPayload = {
       model: config.OPENAI_API_MODEL,
@@ -174,10 +164,12 @@ export async function diagnoseErrorWithAI(errorData, webContext = "", deps = {})
   const openai = createOpenAIInstance(config, deps);
   try {
     const prompt = generateErrorDiagnosticPrompt(errorData, webContext, config);
+    const contextLimit = await getModelContextLimit();
+    const safePrompt = truncateToTokenBudget(prompt, computePromptBudget(contextLimit, RESERVED_FOR_ANALYSIS_RESPONSE));
     const isGpt5Nano = config.OPENAI_API_MODEL === OpenAIModels.GPT_5_NANO;
     const requestPayload = {
       model: config.OPENAI_API_MODEL,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: safePrompt }],
       ...(isGpt5Nano && { reasoning_effort: "low", verbosity: "low" }),
     };
 
@@ -198,10 +190,12 @@ export async function askAIAssistantForCommand(queryData, deps = {}) {
   try {
     console.log(chalk.blue("📤 Enviando solicitação para a IA..."));
     const prompt = generateCommandAssistantPrompt(queryData, config);
+    const contextLimit = await getModelContextLimit();
+    const safePrompt = truncateToTokenBudget(prompt, computePromptBudget(contextLimit, RESERVED_FOR_ANALYSIS_RESPONSE));
     const isGpt5Nano = config.OPENAI_API_MODEL === OpenAIModels.GPT_5_NANO;
     const requestPayload = {
       model: config.OPENAI_API_MODEL,
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: safePrompt }],
       ...(isGpt5Nano && { reasoning_effort: "low", verbosity: "low" }),
     };
 

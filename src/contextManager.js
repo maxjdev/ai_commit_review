@@ -3,6 +3,7 @@ import path from "path";
 import crypto from "crypto";
 import chalk from "chalk";
 import { summarizeText, getModelContextLimit } from "./openaiUtils.js";
+import { CHARS_PER_TOKEN, computePromptBudget, tokensToChars } from "./tokenBudget.js";
 
 const CACHE_DIR = path.join(process.cwd(), ".cache");
 const CACHE_FILE = path.join(CACHE_DIR, "context.json");
@@ -93,12 +94,11 @@ export async function buildContextForFiles(files, promptType, options = {}) {
   const summarizeTextFn = options.summarizeTextFn || summarizeText;
   
   const modelTokenLimit = await getModelContextLimitFn();
-  const CHARS_PER_TOKEN = 4;
   const RESERVED_FOR_RESPONSE = 1000;
   const RESERVED_FOR_INSTRUCTIONS = 200;
-  
-  const maxTokensForContent = modelTokenLimit - RESERVED_FOR_RESPONSE - RESERVED_FOR_INSTRUCTIONS;
-  const maxChars = options.maxChars || (maxTokensForContent * CHARS_PER_TOKEN);
+
+  const maxTokensForContent = computePromptBudget(modelTokenLimit, RESERVED_FOR_RESPONSE) - RESERVED_FOR_INSTRUCTIONS;
+  const maxChars = options.maxChars || tokensToChars(maxTokensForContent);
   const maxCombinedChars = options.maxCombinedChars || maxChars;
   
   console.log(chalk.blue(`ℹ️ Model: ${modelTokenLimit} tokens | Chunk size: ~${Math.floor(maxChars/1000)}k chars (${maxTokensForContent} tokens max per chunk)`));

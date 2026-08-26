@@ -48,6 +48,7 @@ O módulo `src/configManager.js` é o gerenciador central de configurações da 
   - Converte a chave para maiúsculas e valida contra o enum `ConfigKeys`.
   - Se a chave for `OPENAI_API_MODEL`, valida se o valor pertence ao enum `OpenAIModels`.
   - Se a chave for `OPENAI_RESPONSE_LANGUAGE`, valida se o valor é um código em `SupportedLanguages`.
+  - Se a chave for `OPENAI_API_CONTEXT_LIMIT`, valida se o valor é um inteiro maior ou igual a `1024` (janela de contexto real do modelo, ex: `acr set_config OPENAI_API_CONTEXT_LIMIT=16384`).
 - **Ação**: Persiste a nova configuração via `saveConfig(config)` e re-valida via `validateConfiguration()`.
 
 ### `setApiKeyOpenAINTapp()`

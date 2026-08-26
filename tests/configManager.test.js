@@ -99,7 +99,7 @@ test("configManager.js - Cobertura 100% de Gerenciamento de Configuração (Padr
     setupInquirerMock({ isLocal: true });
     const confLocal = await setBaseURLOpenAILocal({});
     assert.equal(confLocal.OPENAI_API_KEY, "local");
-    assert.equal(confLocal.OPENAI_API_MODEL, "google/gemma-4-31b-qat");
+    assert.equal(confLocal.OPENAI_API_MODEL, "openai/gpt-oss-20b");
 
     // Act 2: inquirer recusando local
     setupInquirerMock({ isLocal: false });
@@ -116,7 +116,7 @@ test("configManager.js - Cobertura 100% de Gerenciamento de Configuração (Padr
     deleteConfigFile();
     saveConfig({ OPENAI_API_KEY: "local" });
     const confLocal = await validateConfiguration();
-    assert.equal(confLocal.OPENAI_API_MODEL, "google/gemma-4-31b-qat");
+    assert.equal(confLocal.OPENAI_API_MODEL, "openai/gpt-oss-20b");
 
     // Act 2: Sem chave, recusando local e confirmando NTapp
     deleteConfigFile();
@@ -160,5 +160,17 @@ test("configManager.js - Cobertura 100% de Gerenciamento de Configuração (Padr
     assert.throws(() => updateConfigFromString("INVALID_KEY=VAL"), /Invalid configuration key/);
     assert.throws(() => updateConfigFromString("OPENAI_API_MODEL=INVALID_MODEL"), /Invalid AI model/);
     assert.throws(() => updateConfigFromString("OPENAI_RESPONSE_LANGUAGE=INVALID_LANG"), /Invalid language code/);
+  });
+
+  await t.test("updateConfigFromString deve validar o limite de contexto do modelo", () => {
+    setupInquirerMock();
+
+    // Act 1: Sucesso
+    const config = updateConfigFromString("OPENAI_API_CONTEXT_LIMIT=16384");
+    assert.equal(config.OPENAI_API_CONTEXT_LIMIT, "16384");
+
+    // Act 2: Valores inválidos
+    assert.throws(() => updateConfigFromString("OPENAI_API_CONTEXT_LIMIT=abc"), /Invalid context limit/);
+    assert.throws(() => updateConfigFromString("OPENAI_API_CONTEXT_LIMIT=512"), /Invalid context limit/);
   });
 });

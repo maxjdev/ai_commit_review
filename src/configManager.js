@@ -171,7 +171,21 @@ function validateConfigKey(key) {
   }
 }
 
+function validateContextLimit(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1024) {
+    throw new Error(
+      `❌ Invalid context limit "${value}".\n\n` +
+      `Use an integer greater than or equal to 1024 (e.g. 'acr set_config OPENAI_API_CONTEXT_LIMIT=16384').`
+    );
+  }
+}
+
 function validateConfigValue(key, value) {
+  if (key === ConfigKeys.OPENAI_API_CONTEXT_LIMIT) {
+    validateContextLimit(value);
+  }
+
   if (key === ConfigKeys.OPENAI_API_MODEL) {
     const validModels = Object.values(OpenAIModels);
     if (!validModels.includes(value)) {

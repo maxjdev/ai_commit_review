@@ -13,7 +13,8 @@ O módulo `src/openaiUtils.js` é a camada de integração com a API da OpenAI (
 
 ### Módulos Internos Importados
 - [`src/configManager.js`](file:///d:/GitHub/ai_commit_review/src/configManager.js): `validateConfiguration`, `updateValidApiKey`.
-- [`src/models.js`](file:///d:/GitHub/ai_commit_review/src/models.js): `OpenAIModels`, `PromptType`, `SupportedLanguages`, `ModelContextLimits`.
+- [`src/models.js`](file:///d:/GitHub/ai_commit_review/src/models.js): `OpenAIModels`, `PromptType`, `SupportedLanguages`, `ModelContextLimits`, `ConfigKeys`.
+- [`src/tokenBudget.js`](file:///d:/GitHub/ai_commit_review/src/tokenBudget.js): `estimateTokens`, `computePromptBudget`, `truncateToTokenBudget`, `fitPromptToBudget`.
 
 ---
 
@@ -54,14 +55,14 @@ O módulo `src/openaiUtils.js` é a camada de integração com a API da OpenAI (
   - `deps`: `Object` contendo `{ openaiClient, updateValidApiKeyFn, OpenAIConstructor }` para testes e isolamento.
 - **Funcionamento**:
   - Valida a configuração e instancia o cliente `OpenAI` (com `baseURL` customizada se definida ou via `deps`).
-  - Calcula o tamanho estimado de tokens do prompt (`Math.ceil(prompt.length / 4)`).
-  - Reserva `2000` tokens para a resposta da IA.
-  - Se o prompt exceder o limite de contexto do modelo, realiza o truncamento proporcional dos diffs dos arquivos para ocupar até 60% do limite permitido e regenera o prompt.
+  - Calcula o orçamento máximo de tokens do prompt via `computePromptBudget(contextLimit, 2000)` (reserva de `2000` tokens para a resposta e margem de segurança de 15%).
+  - Estima o tamanho do prompt via `estimateTokens` (≈ 3 caracteres por token, adequado a diffs/código).
+  - Se o prompt exceder o orçamento, aplica `fitPromptToBudget`, que reduz iterativamente os diffs (até 6 tentativas) e, como último recurso, corta o prompt final, garantindo que a requisição nunca exceda o `n_ctx` do modelo.
   - Para o modelo `GPT_5_NANO`, injeta os parâmetros adicionais `{ reasoning_effort: "low", verbosity: "low" }`.
 - **Tratamento de Erros**: Se a chamada à API retornar erro HTTP 401 (não autorizado), chama `updateValidApiKey()` e re-executa a análise de forma recursiva.
 
 ### `getModelContextLimit()`
-- **Descrição**: Retorna o limite de tokens de contexto para o modelo ativo na configuração (consultando `ModelContextLimits`).
+- **Descrição**: Retorna o limite de tokens de contexto para o modelo ativo. A chave de configuração `OPENAI_API_CONTEXT_LIMIT` (quando numérica e positiva) tem precedência sobre a tabela `ModelContextLimits`, permitindo declarar o `n_ctx` real de runtimes locais (LM Studio/Ollama) via `acr set_config OPENAI_API_CONTEXT_LIMIT=16384`.
 
 ### `diagnoseErrorWithAI(errorData, webContext, deps = {})`
 - **Descrição**: Envia os detalhes do erro (comando, SO, mensagem, stderr) combinados com o contexto coletado na busca do Google para a OpenAI gerar o diagnóstico com causa raiz e o comando de auto-remediação (`AUTO_FIX_CMD`).

@@ -17,6 +17,7 @@ O módulo `src/contextManager.js` é responsável por condensar e resumir diffs 
 
 ### Módulos Internos Importados
 - [`src/openaiUtils.js`](file:///d:/GitHub/ai_commit_review/src/openaiUtils.js): `summarizeText`, `getModelContextLimit`.
+- [`src/tokenBudget.js`](file:///d:/GitHub/ai_commit_review/src/tokenBudget.js): `CHARS_PER_TOKEN`, `computePromptBudget`, `tokensToChars`.
 
 ---
 
@@ -33,9 +34,9 @@ O módulo `src/contextManager.js` é responsável por condensar e resumir diffs 
 
 1. Obtém o limite de tokens do modelo (`getModelContextLimit()`).
 2. Reserva:
-   - `1000` tokens para a resposta da IA.
+   - `1000` tokens para a resposta da IA (via `computePromptBudget`, que também aplica margem de segurança de 15%).
    - `200` tokens para as instruções do prompt de resumo.
-3. Estima o limite em caracteres: `maxChars = (modelTokenLimit - 1200) * 4` (considerando 1 token ≈ 4 caracteres).
+3. Converte o orçamento em caracteres com `tokensToChars` (1 token ≈ 3 caracteres, estimativa conservadora para diffs/código).
 4. Se o diff do arquivo for menor ou igual a `maxChars`, o diff original é preservado.
 
 ---

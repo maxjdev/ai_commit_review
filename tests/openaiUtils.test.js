@@ -14,6 +14,7 @@ import {
   askAIAssistantForCommand,
 } from "../src/openaiUtils.js";
 import { saveConfig, deleteConfigFile } from "../src/config.js";
+import { estimateTokens, computePromptBudget } from "../src/tokenBudget.js";
 import { PromptType } from "../src/models.js";
 
 function createMockOpenAI(responseContent = "Análise mock da IA", shouldFail = false, failMessage = "401 Unauthorized") {
@@ -173,8 +174,8 @@ test("openaiUtils.js - Cobertura 100% de Integração com OpenAI (Padrão AAA)",
     );
   });
 
-  await t.test("summarizeText deve lançar erro se prompt estimado exceder o limite de tokens do modelo", async () => {
-    // Arrange: limite extremamente baixo mockado no modelo
+  await t.test("summarizeText deve truncar prompt gigante para caber no limite de tokens do modelo", async () => {
+    // Arrange: limite padrão (8000 tokens) e conteúdo muito acima do orçamento
     saveConfig({
       OPENAI_API_KEY: "sk-test-key",
       OPENAI_API_MODEL: "modelo-micro",
@@ -182,13 +183,74 @@ test("openaiUtils.js - Cobertura 100% de Integração com OpenAI (Padrão AAA)",
       OPENAI_API_BASEURL: "http://127.0.0.1:9999/v1"
     });
 
-    const mockClient = createMockOpenAI("ok");
-    // Act & Assert (Prompt excedendo limite de 8000 tokens com margem reservada)
-    const textoGigante = "X".repeat(40000);
-    await assert.rejects(
-      async () => await summarizeText(textoGigante, { openaiClient: mockClient }),
-      /Prompt too large/
-    );
+    let sentPrompt = "";
+    const mockClient = {
+      chat: {
+        completions: {
+          create: async (payload) => {
+            sentPrompt = payload.messages[0].content;
+            return { choices: [{ message: { content: "ok" } }] };
+          }
+        }
+      }
+    };
+    const textoGigante = "X".repeat(400000);
+
+    // Act
+    const resultado = await summarizeText(textoGigante, { openaiClient: mockClient });
+
+    // Assert
+    assert.equal(resultado, "ok");
+    assert.ok(estimateTokens(sentPrompt) <= computePromptBudget(8000, 1000));
+  });
+
+  await t.test("getModelContextLimit deve priorizar OPENAI_API_CONTEXT_LIMIT configurado", async () => {
+    // Arrange
+    saveConfig({
+      OPENAI_API_KEY: "sk-test-key",
+      OPENAI_API_MODEL: "openai/gpt-oss-20b",
+      OPENAI_API_CONTEXT_LIMIT: "16384",
+      OPENAI_RESPONSE_LANGUAGE: "pt-BR",
+      OPENAI_API_BASEURL: "http://127.0.0.1:9999/v1"
+    });
+
+    // Act
+    const limite = await getModelContextLimit();
+
+    // Assert
+    assert.equal(limite, 16384);
+  });
+
+  await t.test("analyzeUpdatedCode deve garantir que o prompt enviado respeite o orçamento de tokens", async () => {
+    // Arrange
+    saveConfig({
+      OPENAI_API_KEY: "sk-test-key",
+      OPENAI_API_MODEL: "openai/gpt-oss-20b",
+      OPENAI_RESPONSE_LANGUAGE: "pt-BR",
+      OPENAI_API_BASEURL: "http://127.0.0.1:9999/v1"
+    });
+    let sentPrompt = "";
+    const mockClient = {
+      chat: {
+        completions: {
+          create: async (payload) => {
+            sentPrompt = payload.messages[0].content;
+            return { choices: [{ message: { content: "ok" } }] };
+          }
+        }
+      }
+    };
+    const files = [
+      { filename: "a.js", diff: "A".repeat(120000) },
+      { filename: "b.js", diff: "B".repeat(90000) }
+    ];
+
+    // Act
+    const resultado = await analyzeUpdatedCode(files, PromptType.CREATE, { openaiClient: mockClient });
+
+    // Assert
+    assert.equal(resultado, "ok");
+    assert.ok(estimateTokens(sentPrompt) <= computePromptBudget(8000, 2000));
   });
 
   await t.test("deve testar integrações com e sem a opção OPENAI_API_BASEURL via OpenAIConstructor", async () => {
