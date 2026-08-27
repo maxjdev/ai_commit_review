@@ -210,7 +210,8 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
     );
   });
 
-  await t.test("mergeBranch deve executar switch, merge e pullChanges", async () => {
+  await t.test("mergeBranch deve sincronizar origem/destino, mesclar com --no-ff e enviar ao remoto", async () => {
+    // Arrange
     const executedCmds = [];
     const deps = {
       executeGitCommandFn: (cmd) => {
@@ -219,9 +220,17 @@ test("gitBranch.js - Cobertura 100% de Gerenciamento de Branches (Padrão AAA)",
       }
     };
 
+    // Act
     await mergeBranch("dev", "main", deps);
+
+    // Assert
+    assert.ok(executedCmds.includes('git checkout "dev"'));
     assert.ok(executedCmds.includes('git checkout "main"'));
-    assert.ok(executedCmds.includes('git merge --no-ff "dev"'));
+    assert.ok(executedCmds.includes('git merge --no-ff --no-edit "dev"'));
+    const mergeIndex = executedCmds.indexOf('git merge --no-ff --no-edit "dev"');
+    assert.ok(executedCmds.indexOf("git push") < mergeIndex, "deve enviar a branch de origem antes do merge");
+    assert.ok(executedCmds.lastIndexOf("git push") > mergeIndex, "deve enviar o merge ao remoto");
+    assert.ok(executedCmds.lastIndexOf("git pull --no-rebase") > mergeIndex, "deve atualizar o destino após o merge");
   });
 
   await t.test("checkConflicts e getConflictDiff devem identificar conflitos de merge", () => {

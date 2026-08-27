@@ -55,9 +55,9 @@ O módulo `src/createCommit.js` implementa o fluxo guiado interativo para a cria
    - Pergunta se o usuário deseja abortar o commit.
    - Se confirmado (`abortCommit === true`), executa `undoLastCommitSoft()` (`git reset --soft HEAD~1`), mantendo as alterações em staged/unstaged, e encerra o processo com `process.exit(0)`.
 
-8. **Envio Remoto (`pushChanges`)**:
+8. **Envio Remoto (`pullChanges` + `pushChanges`)**:
    - Pergunta se o usuário deseja fazer o push para o repositório remoto.
-   - Se confirmado (`push === true`), executa `pushChanges()` (`git push`).
+   - Se confirmado (`push === true`), executa `pullChanges()` (`git pull --no-rebase`) antes de `pushChanges()` (`git push`), garantindo sincronização remota antes e depois do commit e evitando bifurcações.
 
 ---
 

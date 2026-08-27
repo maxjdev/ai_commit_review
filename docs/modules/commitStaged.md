@@ -45,8 +45,9 @@ O módulo `src/commitStaged.js` implementa o comando `acr commit`. Diferente do 
 6. **Confirmação ou Aborto do Commit (`undoLastCommitSoft`)**:
    - Pergunta se o usuário deseja abortar o commit. Caso afirmativo, executa `undoLastCommitSoft()` (`git reset --soft HEAD~1`) e encerra o processo.
 
-7. **Push Remoto (`pushChanges`)**:
-   - Pergunta se o usuário deseja enviar as alterações para o repositório remoto (`git push`).
+7. **Push Remoto (`pullChanges` + `pushChanges`)**:
+   - Pergunta se o usuário deseja enviar as alterações para o repositório remoto.
+   - Se confirmado, executa `pullChanges()` (`git pull --no-rebase`) antes de `pushChanges()` (`git push`), evitando bifurcações e merges inesperados.
 
 ---
 

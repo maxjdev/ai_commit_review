@@ -148,14 +148,18 @@ export function restoreStashOrRollback(originalBranch, deps = {}) {
 }
 
 /**
- * Merges a branch into another branch.
+ * Merges a branch into another branch always creating a merge commit (--no-ff),
+ * syncing both branches with the remote before and after the merge.
  */
 export async function mergeBranch(fromBranch, toBranch, deps = {}) {
   const d = getDeps(deps);
+  switchBranch(fromBranch, deps);
+  pushChanges(deps);
   switchBranch(toBranch, deps);
-  d.executeGitCommandFn(`git merge --no-ff "${fromBranch}"`, deps);
+  d.executeGitCommandFn(`git merge --no-ff --no-edit "${fromBranch}"`, deps);
   console.log(chalk.green(`Merge of ${fromBranch} into ${toBranch} completed.`));
   pullChanges(deps);
+  pushChanges(deps);
 }
 
 /**

@@ -20,7 +20,7 @@ O módulo `src/gitBranch.js` gerencia operações de trocas de branch, atualiza�
 - `pushChanges(deps)`: Executa `git push`. Propaga exceções para acionar o diagnóstico inteligente e a autocorreção caso a branch não possua upstream ou ocorram divergências.
 - `switchBranch(branch, deps)`: Alterna de branch com stash defensivo.
 - `restoreStashOrRollback(originalBranch, deps)`: Restaura stash com rollback em caso de conflito.
-- `mergeBranch(fromBranch, toBranch, deps)`: Executa merge entre branches.
+- `mergeBranch(fromBranch, toBranch, deps)`: Executa merge entre branches sempre com `--no-ff --no-edit`, preservando o commit de merge e o agrupamento visual da funcionalidade originada na branch de origem. Sincroniza a branch de origem (`switchBranch` + `pushChanges`), sincroniza a branch de destino (`switchBranch`) e, após o merge, executa `pullChanges()` seguido de `pushChanges()` para evitar bifurcações e merges inesperados.
 - `checkConflicts(deps)`: Retorna lista de arquivos em conflito (`UU`).
 - `getConflictDiff(file, deps)`, `writeConflictToTempFile(file, diff)`, `openFileInEditor(tempFilePath, deps)`, `updateFileFromTemp(file, tempFilePath, deps)`: Resolução de conflitos de merge.
 

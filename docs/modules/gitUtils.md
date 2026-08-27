@@ -86,7 +86,7 @@ Dessa forma, fornece uma interface única e simplificada para commits, diffs, br
   - Re-aplica o stash com `git stash pop`. Em caso de conflito no `stash pop`, reverte para a branch original, faz pull e restaura o stash na branch original antes de lançar o erro de conflito.
 
 - **`mergeBranch(fromBranch, toBranch)`**:
-  - Troca para `toBranch` via `switchBranch(toBranch)`, executa `git merge --no-ff <fromBranch>` e executa `pullChanges()`.
+  - Sincroniza `fromBranch` (`switchBranch` + `git push`), troca para `toBranch` via `switchBranch(toBranch)` (que já executa `git pull --no-rebase`), executa `git merge --no-ff --no-edit <fromBranch>` para preservar o commit de merge e o histórico visual da branch de origem, e finaliza com `pullChanges()` + `pushChanges()`.
 
 ---
 

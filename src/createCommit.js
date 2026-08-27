@@ -36,11 +36,13 @@ async function promptAndExecutePush(d) {
     },
   ]);
 
-  if (push) {
-    d.pushChangesFn();
-  } else {
+  if (!push) {
     console.log(chalk.yellow("⚠️ Push not performed."));
+    return;
   }
+
+  d.pullChangesFn();
+  d.pushChangesFn();
 }
 
 export async function createCommit(deps = {}) {
