@@ -5,6 +5,7 @@ export const OpenAIModels = Object.freeze({
   GPT_5_NANO: "gpt-5-nano",
   OSS_20B_LOCAL: "openai/gpt-oss-20b",
   GEMMA_4_31B_QAT: "google/gemma-4-31b-qat",
+  QWEN_9B_LOCAL: "qwen/qwen3.5-9b",
 });
 
 // Token context limits per model
@@ -12,6 +13,7 @@ export const ModelContextLimits = Object.freeze({
   "gpt-5-nano": 128000,
   "openai/gpt-oss-20b": 8000,
   "google/gemma-4-31b-qat": 8000,
+  "qwen/qwen3.5-9b": 65536,
   "default": 8000,
 });
 

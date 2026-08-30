@@ -44,7 +44,7 @@ export async function setBaseURLOpenAILocal(config, configBaseUrlLocalFn = confi
     const isLocal = await configBaseUrlLocalFn();
     if (isLocal) {
       config[ConfigKeys.OPENAI_API_BASEURL] = "http://127.0.0.1:1234/v1";
-      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.OSS_20B_LOCAL;
+      config[ConfigKeys.OPENAI_API_MODEL] = OpenAIModels.QWEN_9B_LOCAL;
       config[ConfigKeys.OPENAI_API_KEY] = "local";
       saveConfig(config);
       console.log(
