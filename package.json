@@ -1,6 +1,6 @@
 {
   "name": "ai-commit-review",
-  "version": "1.2.96",
+  "version": "1.2.97",
   "type": "module",
   "description": "AI-powered commit and code analysis from the local Git repository",
   "main": "dist/bundle.cjs",
