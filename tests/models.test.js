@@ -27,12 +27,14 @@ test("models.js - Validação 100% de Enums e Constantes (Padrão AAA)", async (
     const nanoLimit = ModelContextLimits["gpt-5-nano"];
     const localLimit = ModelContextLimits["openai/gpt-oss-20b"];
     const gemmaLimit = ModelContextLimits["google/gemma-4-31b-qat"];
+    const qwenLimit = ModelContextLimits["qwen/qwen3.5-9b"];
     const defaultLimit = ModelContextLimits["default"];
 
     // Assert
     assert.equal(nanoLimit, 128000);
     assert.equal(localLimit, 8000);
     assert.equal(gemmaLimit, 8000);
+    assert.equal(qwenLimit, 25088);
     assert.equal(defaultLimit, 8000);
   });
 

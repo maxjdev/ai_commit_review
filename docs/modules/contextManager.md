@@ -33,6 +33,7 @@ O módulo `src/contextManager.js` é responsável por condensar e resumir diffs 
 ## 📐 Algoritmo de Cálculo de Contexto e Chunks
 
 1. Obtém o limite de tokens do modelo (`getModelContextLimit()`).
+  Para `qwen/qwen3.5-9b`, o catálogo usa `25000` tokens, compatível com o limite `n_ctx` do runtime local; esse valor pode ser sobrescrito por `OPENAI_API_CONTEXT_LIMIT`.
 2. Reserva:
    - `1000` tokens para a resposta da IA (via `computePromptBudget`, que também aplica margem de segurança de 15%).
    - `200` tokens para as instruções do prompt de resumo.

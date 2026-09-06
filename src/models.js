@@ -13,7 +13,7 @@ export const ModelContextLimits = Object.freeze({
   "gpt-5-nano": 128000,
   "openai/gpt-oss-20b": 8000,
   "google/gemma-4-31b-qat": 8000,
-  "qwen/qwen3.5-9b": 65536,
+  "qwen/qwen3.5-9b": 25000,
   "default": 8000,
 });
 
