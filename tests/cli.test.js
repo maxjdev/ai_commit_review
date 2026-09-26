@@ -28,6 +28,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.equal(typeof defaultDeps.commitStaged, "function");
     assert.equal(typeof defaultDeps.updateServerToTest, "function");
     assert.equal(typeof defaultDeps.updateServerToProduction, "function");
+    assert.equal(typeof defaultDeps.mergeFeatureToDevelop, "function");
     assert.equal(typeof defaultDeps.resetConfig, "function");
     assert.equal(defaultDeps.isTesting, false);
 
@@ -48,6 +49,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
       commitStaged: "commit",
       updateServerToTest: "testServ",
       updateServerToProduction: "prodServ",
+      mergeFeatureToDevelop: "mergeFeat",
       resetConfig: "resetCfg",
     });
     assert.equal(customDeps.handleUnknownCommandFn, "unknownHandler");
@@ -55,6 +57,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.equal(customDeps.execSyncFn, "exec");
     assert.equal(customDeps.isTesting, true);
     assert.equal(customDeps.commandActionMap.custom, "action");
+    assert.equal(customDeps.mergeFeatureToDevelop, "mergeFeat");
   });
 
   await t.test("getCommandAction deve retornar handlers padrão e injetados", () => {
@@ -65,6 +68,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.equal(getCommandAction("commit", { commitStaged: "custom" }), "custom");
     assert.equal(getCommandAction("updateTestServer", { updateServerToTest: "custom" }), "custom");
     assert.equal(getCommandAction("updateProductionServer", { updateServerToProduction: "custom" }), "custom");
+    assert.equal(getCommandAction("mergeFeature", { mergeFeatureToDevelop: "custom" }), "custom");
     assert.equal(getCommandAction("resetConfig", { resetConfig: "custom" }), "custom");
 
     // Sem injeção (padrão)
@@ -74,6 +78,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.equal(typeof getCommandAction("commit"), "function");
     assert.equal(typeof getCommandAction("updateTestServer"), "function");
     assert.equal(typeof getCommandAction("updateProductionServer"), "function");
+    assert.equal(typeof getCommandAction("mergeFeature"), "function");
     assert.equal(typeof getCommandAction("resetConfig"), "function");
 
     // Comando desconhecido (sem e com fallback)
@@ -209,6 +214,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
       commitStaged: async () => {},
       updateServerToTest: async () => {},
       updateServerToProduction: async () => {},
+      mergeFeatureToDevelop: async () => {},
       resetConfig: async () => {},
     };
 
@@ -219,6 +225,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     assert.ok(typeof actions["commit"] === "function");
     assert.ok(typeof actions["updateTestServer"] === "function");
     assert.ok(typeof actions["updateProductionServer"] === "function");
+    assert.ok(typeof actions["mergeFeature"] === "function");
     assert.ok(typeof actions["resetConfig"] === "function");
     assert.ok(typeof actions["set_config"] === "function");
 
@@ -229,6 +236,7 @@ test("cli.js - Cobertura 100% de safeExecuteCommand e Auto-Recovery (Padrão AAA
     await actions["commit"]();
     await actions["updateTestServer"]();
     await actions["updateProductionServer"]();
+    await actions["mergeFeature"]();
     await actions["resetConfig"]();
 
     // Invoca set_config válido e inválido

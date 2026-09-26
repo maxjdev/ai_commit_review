@@ -41,6 +41,11 @@ export const AVAILABLE_COMMANDS = Object.freeze([
     description: "Restaura as configurações da CLI para os valores padrão",
   },
   {
+    name: "mergeFeature",
+    signature: "acr mergeFeature",
+    description: "Mescla branch de feature na develop com merge commit e resolução de conflitos",
+  },
+  {
     name: "set_config",
     signature: "acr set_config <KEY=VALUE>",
     description: "Atualiza configurações da CLI (ex: OPENAI_API_KEY=...)",

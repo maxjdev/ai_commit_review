@@ -22,6 +22,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `docs/TESTING_STRATEGY.md` | Pirâmide de testes, matriz por módulo e padrão AAA | 🟢 Concluído |
 | `docs/SECURITY_AND_RESILIENCE.md` | OWASP checklist, prevenção de injeção e transação Git | 🟢 Concluído |
 | `docs/DEAD_CODE_AND_DUPLICATION.md` | Inventário de código morto, rotas desusadas e refatoração DRY | 🟢 Concluído |
+| `docs/FEATURE_MERGE_GUIDE.md` | Guia passo a passo de operação da funcionalidade mergeFeature | 🟢 Concluído |
 | `README.md` | Documentação principal do repositório | 🟢 Concluído |
 | `LICENSE.md` | Licença do projeto | 🟢 Concluído |
 
