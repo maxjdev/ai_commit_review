@@ -9,7 +9,7 @@ import { commitStaged } from "./src/commitStaged.js";
 import { criptografarcli } from "./src/crypto.js";
 import { updateServerToTest } from "./src/testServerUpdate.js";
 import { updateServerToProduction } from "./src/productionServerUpdate.js";
-import { mergeFeatureToDevelop } from "./src/featureMerge.js";
+import { executeMergeFlow } from "./src/mergeBranch.js";
 import { diagnoseAndHandleError } from "./src/errorDiagnosticService.js";
 import { handleUnknownCommand } from "./src/commandAssistant.js";
 import { execSync } from "child_process";
@@ -21,7 +21,7 @@ export const commandActionMap = Object.freeze({
   crypto: criptografarcli,
   updateTestServer: updateServerToTest,
   updateProductionServer: updateServerToProduction,
-  mergeFeature: mergeFeatureToDevelop,
+  mergeBranch: executeMergeFlow,
   resetConfig: resetConfig,
 });
 
@@ -43,7 +43,7 @@ export function getDeps(deps = {}) {
     commitStaged: deps.commitStaged || commitStaged,
     updateServerToTest: deps.updateServerToTest || updateServerToTest,
     updateServerToProduction: deps.updateServerToProduction || updateServerToProduction,
-    mergeFeatureToDevelop: deps.mergeFeatureToDevelop || mergeFeatureToDevelop,
+    executeMergeFlow: deps.executeMergeFlow || executeMergeFlow,
     resetConfig: deps.resetConfig || resetConfig,
   };
 }
@@ -57,7 +57,7 @@ export function getCommandAction(cmdName, deps = {}) {
     commit: d.commitStaged,
     updateTestServer: d.updateServerToTest,
     updateProductionServer: d.updateServerToProduction,
-    mergeFeature: d.mergeFeatureToDevelop,
+    mergeBranch: d.executeMergeFlow,
     resetConfig: d.resetConfig,
   };
   return handlerMap[cmdName] || d.commandActionMap[cmdName];
@@ -129,7 +129,7 @@ export function registerCliCommands(prog, deps = {}) {
   prog.command("commit").description("Commit staged changes").action(() => safeExecuteCommand("commit", getCommandAction("commit", deps), deps));
   prog.command("updateTestServer").description("Update server to test").action(() => safeExecuteCommand("updateTestServer", getCommandAction("updateTestServer", deps), deps));
   prog.command("updateProductionServer").description("Update server to production").action(() => safeExecuteCommand("updateProductionServer", getCommandAction("updateProductionServer", deps), deps));
-  prog.command("mergeFeature").description("Merge feature branch into develop").action(() => safeExecuteCommand("mergeFeature", getCommandAction("mergeFeature", deps), deps));
+  prog.command("mergeBranch [targetBranch]").description("Merge current branch into target branch").action((targetBranch) => safeExecuteCommand("mergeBranch", () => getCommandAction("mergeBranch", deps)(targetBranch, deps), deps));
   prog.command("resetConfig").description("Reset configuration to defaults").action(() => safeExecuteCommand("resetConfig", getCommandAction("resetConfig", deps), deps));
   prog.command("set_config <keyValue>").description("Update configurations with KEY=VALUE").action((keyValue) => {
     try {
@@ -155,7 +155,7 @@ export async function runInteractiveMenu(deps = {}) {
         { name: "Encrypt/Decrypt text", value: "crypto" },
         { name: "Update server to test", value: "updateTestServer" },
         { name: "Update server to production", value: "updateProductionServer" },
-        { name: "Merge feature branch into develop", value: "mergeFeature" },
+        { name: "Merge current branch into another branch", value: "mergeBranch" },
         { name: "Reset configuration", value: "resetConfig" },
       ],
     },

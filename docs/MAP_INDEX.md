@@ -22,7 +22,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `docs/TESTING_STRATEGY.md` | Pirâmide de testes, matriz por módulo e padrão AAA | 🟢 Concluído |
 | `docs/SECURITY_AND_RESILIENCE.md` | OWASP checklist, prevenção de injeção e transação Git | 🟢 Concluído |
 | `docs/DEAD_CODE_AND_DUPLICATION.md` | Inventário de código morto, rotas desusadas e refatoração DRY | 🟢 Concluído |
-| `docs/FEATURE_MERGE_GUIDE.md` | Guia passo a passo de operação da funcionalidade mergeFeature | 🟢 Concluído |
+| `docs/BRANCH_MERGE_GUIDE.md` | Guia passo a passo de operação da funcionalidade mergeBranch | 🟢 Concluído |
 | `README.md` | Documentação principal do repositório | 🟢 Concluído |
 | `LICENSE.md` | Licença do projeto | 🟢 Concluído |
 
@@ -86,6 +86,7 @@ Este documento rastreia o status do mapeamento e documentação dos módulos e a
 | `src/analyzeCommit.js` | Comando de análise de commits com IA | 🟢 Concluído |
 | `src/createCommit.js` | Comando de criação interativa de commit com IA | 🟢 Concluído |
 | `src/commitStaged.js` | Comando de commit direto de alterações staged | 🟢 Concluído |
+| `src/mergeBranch.js` | Integração e merge commit de branches com resolução de conflitos | 🟢 Concluído |
 
 ### 5. Automações de Atualização de Servidor
 | Arquivo | Descrição | Status |

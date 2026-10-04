@@ -41,9 +41,9 @@ export const AVAILABLE_COMMANDS = Object.freeze([
     description: "Restaura as configurações da CLI para os valores padrão",
   },
   {
-    name: "mergeFeature",
-    signature: "acr mergeFeature",
-    description: "Mescla branch de feature na develop com merge commit e resolução de conflitos",
+    name: "mergeBranch",
+    signature: "acr mergeBranch [targetBranch]",
+    description: "Mescla a branch atual em outra branch com merge commit e resolução de conflitos",
   },
   {
     name: "set_config",
