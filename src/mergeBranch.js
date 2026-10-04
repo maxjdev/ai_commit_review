@@ -50,7 +50,11 @@ export async function checkUncommittedChanges(deps = {}) {
   ]);
 
   if (shouldCommit) {
-    await d.createCommitFn(deps);
+    try {
+      await d.createCommitFn(deps);
+    } catch {
+      console.log(chalk.yellow("⚠️ Commit could not be completed."));
+    }
     const statusAfter = d.executeGitCommandFn("git status --porcelain", deps);
     if (!statusAfter || statusAfter.trim().length === 0) return;
   }

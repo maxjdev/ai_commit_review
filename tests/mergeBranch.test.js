@@ -63,7 +63,7 @@ test("mergeBranch.js - Cobertura 100% de Linhas, Branches e Funções (Padrão A
         return "";
       },
       promptFn: async () => ({ shouldCommit: true }),
-      createCommitFn: async () => {},
+      createCommitFn: async () => { throw new Error("Connection error"); },
     });
     assert.equal(stashedOnCancel, true);
   });
